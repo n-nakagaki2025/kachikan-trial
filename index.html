@@ -668,7 +668,7 @@ function coverHTML(t) {
   if (!list.length) return `<div class="cov t${t}">${head}
     <p>今回の答えでは、${esc(tname(t))}の6組の中に、補い合える組の組み合わせが見つかりませんでした。あなたの場合、補う手は${esc(tname(t))}の外にあります。本編では、ほかの4つの特性から探します。</p></div>`;
   return `<div class="cov t${t}">${head}
-    <p class="small">ある組で引き換えになりやすいことを、あなたがすでに持っている別の組の力で補う一歩です。自分らしさは変えずに、使える面がひとつ増えます。</p>
+    <p class="small">どの型にも、その良さの裏側に、つまずきやすい場面があります。補う一歩は、その場面を、あなたがすでに持っているもう一つの型の力で乗り切る一歩です。自分らしさを変えずに、打てる手がひとつ増えます。</p>
     ${list.map((c) => `<div class="cv1">
       <span class="q"><b>「${esc(typeName(c.x))}」</b>は、${esc(c.tradeoff)}。</span>
       <span class="by">補う力：あなたの中の<b>「${esc(typeName(c.y))}」</b></span>
