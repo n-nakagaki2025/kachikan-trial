@@ -102,10 +102,21 @@ button{font:inherit;cursor:pointer;color:inherit}
 .fr .cd b{font-weight:700}
 .fr .cd.hi{text-align:right}
 .fr .sc{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.dbar{grid-column:1/-1;position:relative;height:10px;background:var(--bg);border-radius:5px}
-.dbar::after{content:"";position:absolute;left:50%;top:-2px;width:2px;height:14px;background:var(--muted);transform:translateX(-1px)}
-.dbar i{position:absolute;top:0;height:10px;background:var(--tc);border-radius:5px}
+.fr .fn{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ty{font-size:12px;font-weight:700;border-radius:999px;padding:0 10px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.ty.high,.ty.low{color:var(--tc);border-color:var(--tc)}
+.ty.both{background:var(--tc);border-color:var(--tc);color:var(--surface)}
+.ty.neither{border-style:dashed}
+.bfly{grid-column:1/-1;display:grid;grid-template-columns:1fr 2px 1fr;align-items:center;height:12px}
+.bfly .half{height:12px;background:var(--bg);position:relative}
+.bfly .half.l{border-radius:6px 0 0 6px}.bfly .half.r{border-radius:0 6px 6px 0}
+.bfly .half i{position:absolute;top:0;height:12px;background:var(--tc)}
+.bfly .half.l i{right:0;opacity:.55;border-radius:6px 0 0 6px}
+.bfly .half.r i{left:0;border-radius:0 6px 6px 0}
+.bfly .mid{height:16px;background:var(--muted)}
 .flagtx{grid-column:1/-1;font-size:13px;color:var(--ink);background:var(--tint);border-radius:6px;padding:4px 10px}
+.counts{font-size:13px;color:var(--muted)}
+.style{font-size:14px}
 details.tr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 16px}
 details.tr summary{cursor:pointer;padding:14px 0;font-family:var(--display);font-weight:800;font-size:18px;color:var(--tc);list-style:none;display:flex;justify-content:space-between;gap:8px}
 details.tr summary::-webkit-details-marker{display:none}
@@ -166,10 +177,17 @@ const Core = (() => {
   function facet(ans, t, n) {
     const h = ans[`${t}-H${n}`], l = ans[`${t}-L${n}`];
     if (h == null || l == null) return null;
-    let flag = null;
-    if (h >= 5 && l >= 5) flag = "both";      // どちらも当てはまる
-    else if (h <= 2 && l <= 2) flag = "neither"; // どちらも当てはまらない
-    return { t, n, h, l, f: h - l, flag };
+    // 型：差が2以上なら寄っている側。差が小さいときは、2枚の合計で
+    // 「どちらも当てはまる」「どちらも当てはまらない」「中ほど」を分ける
+    const f = h - l, sum = h + l;
+    let type;
+    if (f >= 2) type = "high";
+    else if (f <= -2) type = "low";
+    else if (sum >= 9) type = "both";     // 平均4.5以上
+    else if (sum <= 5) type = "neither";  // 平均2.5以下
+    else type = "middle";
+    const flag = type === "both" || type === "neither" ? type : null;
+    return { t, n, h, l, f, sum, type, flag };
   }
 
   function trait(ans, t) {
@@ -235,7 +253,17 @@ const Core = (() => {
     return a;
   }
 
-  return { LIKERT, prepare, facet, trait, lean, standouts, oneUp, shuffle };
+  // 答え方のくせ：全回答の平均が極端に高い／低いときに一言添える
+  function answerStyle(ans, ids) {
+    const vs = ids.map((id) => ans[id]).filter((v) => v != null);
+    if (!vs.length) return null;
+    const m = vs.reduce((s, v) => s + v, 0) / vs.length;
+    if (m >= 4.5) return { m, kind: "yes" };
+    if (m <= 2.5) return { m, kind: "no" };
+    return { m, kind: null };
+  }
+
+  return { LIKERT, prepare, facet, trait, lean, standouts, oneUp, shuffle, answerStyle };
 })();
 
 
@@ -380,25 +408,42 @@ function axisHTML(t) {
     <div class="top"><span class="tn">${esc(tname(t))}</span><span class="ln">${Core.lean(r.mean)}</span></div>
     <div class="track" role="img" aria-label="${esc(tname(t))}：${Core.lean(r.mean)}"><i style="left:${pct}%"></i></div>
     <div class="ends"><span>低い側</span><span>高い側</span></div>
+    ${countsHTML(t)}
   </div>`;
 }
+const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "どちらも当てはまる", neither: "どちらも当てはまらない", middle: "中ほど" };
 function facetsHTML(t) {
   const r = Core.trait(S.answers, t);
   return `<div class="facets t${t}">${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
-    const w = (Math.abs(x.f) / 5) * 50;
-    const left = x.f >= 0 ? 50 : 50 - w;
-    const flag = x.flag === "both"
-      ? `<div class="flagtx">どちらも「当てはまる」と答えています。場面によって使い分けているのかもしれません。</div>`
-      : x.flag === "neither" ? `<div class="flagtx">どちらも「当てはまらない」と答えています。この下位特性は、あなたにはあまり関係が薄いのかもしれません。</div>` : "";
+    const flag = x.type === "both"
+      ? `<div class="flagtx">反対の2枚に、どちらも「当てはまる」寄りに答えています。場面によって使い分けているのかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
+      : x.type === "neither" ? `<div class="flagtx">反対の2枚に、どちらも「当てはまらない」寄りに答えています。この面はふだんあまり意識していないか、どちらの言葉もしっくりこなかったのかもしれません。</div>` : "";
     return `<div class="fr">
-      <div class="fn">${esc(fname(t, x.n))}</div>
+      <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
       <div class="cd lo"><b>${esc(lo.name)}</b> <span class="sc">${x.l}</span></div>
       <div class="cd hi"><span class="sc">${x.h}</span> <b>${esc(hi.name)}</b></div>
-      <div class="dbar" role="img" aria-label="${esc(fname(t, x.n))}：高い側${x.h}、低い側${x.l}"><i style="left:${left}%;width:${w}%"></i></div>
+      <div class="bfly" role="img" aria-label="${esc(fname(t, x.n))}：低い側${x.l}点、高い側${x.h}点"><span class="half l"><i style="width:${(x.l / 6) * 100}%"></i></span><span class="mid"></span><span class="half r"><i style="width:${(x.h / 6) * 100}%"></i></span></div>
       ${flag}
     </div>`;
   }).join("")}</div>`;
+}
+function countsHTML(t) {
+  const fs = Core.trait(S.answers, t).facets;
+  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "neither").length;
+  if (!b && !n) return "";
+  const parts = [];
+  if (b) parts.push(`どちらも当てはまる ${b}つ`);
+  if (n) parts.push(`どちらも当てはまらない ${n}つ`);
+  return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>`;
+}
+function styleHTML(ids) {
+  const st = Core.answerStyle(S.answers, ids);
+  if (!st || !st.kind) return "";
+  const m = st.m.toFixed(1);
+  return st.kind === "yes"
+    ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「どちらも当てはまる」は少し割り引いて見てください。</p>`
+    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらも当てはまらない」は少し割り引いて見てください。</p>`;
 }
 function standHTML(list) {
   if (!list.length) return `<p class="small muted">どの下位特性も、高い側と低い側の差が小さめでした。どちらかに大きく寄らず、場面に合わせて動けるのかもしれません。</p>`;
@@ -414,7 +459,7 @@ function summaryText() {
   ts.forEach((t) => {
     const r = Core.trait(S.answers, t);
     lines.push(`■${tname(t)}：${Core.lean(r.mean)}`);
-    r.facets.forEach((x) => lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}`));
+    r.facets.forEach((x) => lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}（${TYPE_LABEL[x.type]}）`));
   });
   if (!IS_TRIAL && S.oneUp && S.oneUp.cardId) lines.push("", `ワンランク上の一枚：${D.byId[S.oneUp.cardId].name}`);
   return lines.join("\n");
@@ -445,8 +490,8 @@ function viewResult() {
   if (IS_TRIAL) return viewTrialResult();
   const ts = D.traits.map((t) => t.key);
   const stands = Core.standouts(S.answers, D.traits, 3);
-  const both = [];
-  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => x.flag === "both" && both.push(x)));
+  const both = [], neither = [];
+  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.type === "neither") neither.push(x); }));
 
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
@@ -454,10 +499,15 @@ function viewResult() {
     <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
     <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
       <p class="small muted">高い側と低い側の差が大きかったものを、最大3つ挙げています。</p>${standHTML(stands)}</section>
-    ${both.length ? `<section class="callout"><h3>場面で使い分けているかもしれないもの</h3>
+    ${styleHTML(D.cards.map((c) => c.id))}
+    ${both.length ? `<section class="callout"><h3>どちらも当てはまるもの（場面で使い分けているかもしれません）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">反対の2枚にどちらも「当てはまる」と答えたものです。人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
+      <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
+    ${neither.length ? `<section class="callout"><h3>どちらも当てはまらないもの</h3>
+      <p>${neither.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
+      <p class="small muted">ふだんあまり意識していない面かもしれません。それぞれのカードの言葉が、自分のどんな場面に近いかを考えてみてください。</p></section>` : ""}
     <section class="sec"><h2>30の下位特性</h2>
+      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。</p>
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
     </section>
     <section class="sec" id="oneup"></section>
@@ -521,7 +571,9 @@ function viewTrialResult() {
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
       <p class="small muted">点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。平均的な人との比較ではありません。</p></header>
     ${axisHTML(t)}
-    <section class="sec"><h2>6つの下位特性</h2>${facetsHTML(t)}</section>
+    ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
+    <section class="sec"><h2>6つの下位特性</h2>
+      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。両方が長いときも、両方が短いときも、上の位置では真ん中に寄ります。</p>${facetsHTML(t)}</section>
     <section class="sec"><h2>この特性の中で目立つもの</h2>${standHTML(stands)}</section>
     ${copyBtn()}
     <section class="resume">
