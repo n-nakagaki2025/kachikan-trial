@@ -617,7 +617,8 @@ function summaryHTML(t) {
 const TYPES_NOTE = "強く答えた組の、2枚の答えの組み合わせから読み取っています。平均的な人との比較ではありません。";
 /* ---------- PDF ---------- */
 function pdfBtn() {
-  return `<div class="row"><button class="btn ghost" id="dl">結果をPDFで受け取る</button><span class="small muted" id="dlStatus" aria-live="polite"></span></div>`;
+  return `<div class="row"><button class="btn ghost" id="dl">結果をPDFで受け取る</button><span class="small muted" id="dlStatus" aria-live="polite"></span></div>
+    <p class="small muted">PDFは、この端末の「ダウンロード」に保存されます。LINEやnoteのアプリの中で開いているとうまく保存できないことがあるので、そのときはSafariやChromeで開き直してください。</p>`;
 }
 function reportBlocks() {
   const date = new Date().toLocaleDateString("ja-JP");
@@ -679,7 +680,7 @@ async function downloadPDF() {
     pdf.save(IS_TRIAL ? "価値観カード_体験版_結果.pdf" : "価値観カード_結果.pdf");
     st.textContent = "PDFを作成しました。";
   } catch (e) {
-    st.textContent = "PDFを作成できませんでした。ページを再読み込みしてからお試しください。";
+    st.textContent = "PDFを作成できませんでした。SafariやChromeで開き直すか、ページを再読み込みしてからお試しください。";
   } finally {
     btn.disabled = false; host.innerHTML = "";
   }
