@@ -109,13 +109,6 @@ button{font:inherit;cursor:pointer;color:inherit}
 .ty.both{background:var(--tc);border-color:var(--tc);color:var(--surface)}
 .ty.center{border-style:dashed}
 .ty.mismatch{border-style:dashed;border-color:var(--accent);color:var(--accent)}
-.why{grid-column:1/-1;background:var(--tint);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
-.why .wq{font-weight:700}
-.why .opts{display:flex;flex-direction:column;gap:6px}
-.why .opt{background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;font-size:14px}
-.why .opt[aria-pressed="true"]{border-color:var(--accent)}
-.why .ans{font-size:14px}
-.why .ans a{color:var(--accent);font-weight:700}
 .lanes{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
 .lane{display:grid;grid-template-columns:7.2em 1fr;align-items:center;gap:8px}
 .lane .nm{font-size:13px;font-weight:700;line-height:1.35;min-width:0}
@@ -177,7 +170,6 @@ details.tr .body{padding-bottom:14px}
 .pg h2{font-size:19px}
 .pg .eb{font-size:11px;letter-spacing:.16em;color:var(--accent);font-weight:700}
 .pg .mu{color:var(--muted)}
-.pg .rsn-s{grid-column:1/-1;font-size:12px;background:var(--tint);border-radius:6px;padding:4px 10px}
 @media (max-width:380px){.picker,.dirs{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -477,36 +469,6 @@ function axisHTML(t) {
   </div>`;
 }
 const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "両方の顔がある", center: "どちらでもない（真ん中）", mismatch: "どちらの言葉も合わない" };
-const REASONS = [
-  { k: "words", q: "言葉の一部が、自分と違った", a: "説明のどの部分が自分と違ったかを考えてみると、自分らしい言い方が見つかるかもしれません。" },
-  { k: "scene", q: "そういう場面が、あまりない", a: "ふだんの生活で、この面が問われることが少ないのかもしれません。" },
-  { k: "varies", q: "場面によって変わるので、どちらとも言えない", a: "両方の顔があるのかもしれません。どんな場面で、どちらの自分が出ているか振り返ってみてください。" },
-  { k: "unsure", q: "今の自分がどちらか、よく分からない", a: "変化の途中にいるのかもしれません。以前の自分と今の自分を比べてみると、手がかりが見つかることがあります。", coach: true },
-  { k: "unknown", q: "なぜだか分からない", a: "理由がすぐに言葉にならないところにこそ、大事な手がかりがあることもあります。コーチングのセッションで話してみると、糸口が見つかるかもしれません。", coach: true },
-];
-function whyHTML(x) {
-  const key = `${x.t}${x.n}`, sel = S.reasons[key];
-  const r = REASONS.find((o) => o.k === sel);
-  return `<div class="why" id="why-${key}">
-    <span class="wq">この2枚が、どちらも自分に合わなかったのはなぜでしょう？</span>
-    <div class="opts">${REASONS.map((o) => `<button class="opt" data-why="${key}" data-k="${o.k}" aria-pressed="${sel === o.k}">${o.q}</button>`).join("")}</div>
-    ${r ? `<p class="ans">${r.a}${r.coach ? ` <a href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">セッションについて問い合わせる</a>` : ""}</p>` : ""}
-  </div>`;
-}
-function whyStatic(x) {
-  const r = REASONS.find((o) => o.k === S.reasons[`${x.t}${x.n}`]);
-  return `<div class="rsn-s">どちらの言葉も合わなかった理由：${r ? esc(r.q) : "（未選択）"}</div>`;
-}
-function bindWhy(root) {
-  root.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
-    const key = b.dataset.why;
-    S.reasons[key] = b.dataset.k; save();
-    const x = Core.facet(S.answers, key[0], Number(key.slice(1)));
-    const box = document.getElementById(`why-${key}`);
-    box.outerHTML = whyHTML(x);
-    bindWhy(document.getElementById(`why-${key}`).parentElement);
-  }));
-}
 // 1本の目盛り：高い側のカードは左から1〜6、低い側のカードは逆向き（左から6〜1）。
 // 真ん中は「3と4の境目」。棒は真ん中から、答えた点の位置まで伸ばす。
 function laneHTML(name, v, reversed) {
@@ -522,8 +484,8 @@ function facetsHTML(t, pdf = false) {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const rd = readingOf(x);
     const flag = (rd ? `<div class="flagtx">→ ${esc(rd.name)}</div>` : x.type === "both"
-      ? `<div class="flagtx">この組の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。</div>` : "")
-      + (x.type === "mismatch" ? (pdf ? whyStatic(x) : whyHTML(x)) : "");
+      ? `<div class="flagtx">この組の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。</div>`
+      : x.type === "mismatch" ? `<div class="flagtx">この組の2枚の、どちらにも当てはまらないと答えています。</div>` : "");
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
       <div class="lanes">${laneHTML(hi.name, x.h, false)}${laneHTML(lo.name, x.l, true)}</div>
@@ -730,7 +692,7 @@ function viewResult() {
       <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
     ${mism.length ? `<section class="callout"><h3>どちらの言葉も合わなかったもの</h3>
       <p>${mism.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">2枚とも強く「当てはまらない」と答えた組です。理由はいくつか考えられるので、下の30組の中で、自分に近い理由を選んでみてください。</p></section>` : ""}
+      <p class="small muted">2枚とも強く「当てはまらない」と答えた組です。</p></section>` : ""}
     <section class="sec"><h2>30組のカード</h2>
       <p class="small muted">1組は、概ね反対の意味に相当する一対のカードです。</p>
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
@@ -740,7 +702,6 @@ function viewResult() {
     <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
     ${footer()}`;
   bindPdf();
-  bindWhy(app);
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   renderOneUp();
   window.scrollTo(0, 0);
@@ -815,7 +776,6 @@ function viewTrialResult() {
     </section>
     <div class="row"><button class="textbtn" id="reset">答え直す</button></div>
     ${footer()}`;
-  bindWhy(app);
   bindPdf();
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   window.scrollTo(0, 0);
