@@ -131,6 +131,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 .axhd span:last-child{display:flex;justify-content:space-between}
 .flagtx{grid-column:1/-1;font-size:13px;color:var(--ink);background:var(--tint);border-radius:6px;padding:4px 10px}
 .counts{font-size:13px;color:var(--muted)}
+.counts.habit{color:var(--ink);background:var(--tint);border-radius:6px;padding:6px 10px}
 .style{font-size:14px}
 details.tr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 16px}
 details.tr summary{cursor:pointer;padding:14px 0;font-family:var(--display);font-weight:800;font-size:18px;color:var(--tc);list-style:none;display:flex;justify-content:space-between;gap:8px}
@@ -508,7 +509,7 @@ function facetsHTML(t, pdf = false) {
   return `<div class="facets t${t}"><div class="axhd"><span></span><span><span>← 低い側</span><span>高い側 →</span></span></div>${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
-      ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
+      ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。</div>`
       : x.type === "mismatch" ? (pdf ? whyStatic(x) : whyHTML(x)) : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
@@ -525,15 +526,13 @@ function countsHTML(t) {
   if (b) parts.push(`両方の顔がある ${b}つ`);
   if (n) parts.push(`どちらでもない（真ん中） ${n}つ`);
   if (m) parts.push(`どちらの言葉も合わない ${m}つ`);
-  return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>`;
-}
-function styleHTML(ids) {
-  const st = Core.answerStyle(S.answers, ids);
-  if (!st || !st.kind) return "";
-  const m = st.m.toFixed(1);
-  return st.kind === "yes"
-    ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「両方の顔がある」は少し割り引いて見てください。</p>`
-    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらの言葉も合わない」は少し割り引いて見てください。</p>`;
+  // 答え方のくせは、1組では判断しない。同じ特性の中で3組以上そろったときだけ触れる
+  const habit = b >= 3
+    ? `<div class="counts habit">反対の2枚のどちらにも当てはまると答えた組が、6つのうち${b}つあります。場面で使い分けている面もあるかもしれませんが、何にでも「当てはまる」と答えやすいくせが出ている可能性もあります。</div>`
+    : m >= 3
+    ? `<div class="counts habit">反対の2枚のどちらにも当てはまらないと答えた組が、6つのうち${m}つあります。言葉が合わなかった面もあるかもしれませんが、何にでも「当てはまらない」と答えやすいくせが出ている可能性もあります。</div>`
+    : "";
+  return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>${habit}`;
 }
 const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
 function standHTML(list) {
@@ -559,7 +558,6 @@ function reportBlocks() {
     const t = CONFIG.trialTrait;
     B.push(`<div><span class="eb">VALUE CARDS / TRIAL</span><h1>価値観カード 体験版<br>${esc(tname(t))}の結果</h1><p class="mu">${date}　外向性の12枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
     B.push(axisHTML(t));
-    const st = styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id)); if (st) B.push(st);
     B.push(`<section class="sec"><h2>この特性の中で目立つもの</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, [D.traitByKey[t]], 3))}</section>`);
     B.push(`<section class="sec"><h2>6つの下位特性</h2>${facetsHTML(t, true)}</section>`);
     B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてで5つの特性と30の下位特性を見て、これから伸ばしたい「ワンランク上の一枚」を受け取れます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
@@ -567,7 +565,6 @@ function reportBlocks() {
     const ts = D.traits.map((x) => x.key);
     B.push(`<div><span class="eb">VALUE CARDS</span><h1>価値観カード<br>あなたの中の傾向</h1><p class="mu">${date}　60枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
     ts.forEach((t) => B.push(axisHTML(t)));
-    const st = styleHTML(D.cards.map((c) => c.id)); if (st) B.push(st);
     B.push(`<section class="sec"><h2>あなたの中で目立つ下位特性</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, D.traits, 5))}</section>`);
     if (S.oneUp && S.oneUp.cardId) {
       const c = D.byId[S.oneUp.cardId];
@@ -639,7 +636,6 @@ function viewResult() {
     <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
     <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
       <p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
-    ${styleHTML(D.cards.map((c) => c.id))}
     ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
       <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
@@ -711,7 +707,6 @@ function viewTrialResult() {
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
       <p class="small muted">大きな点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
     ${axisHTML(t)}
-    ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
     <section class="sec"><h2>6つの下位特性</h2>
 ${facetsHTML(t)}</section>
     <section class="sec"><h2>この特性の中で目立つもの</h2><p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
