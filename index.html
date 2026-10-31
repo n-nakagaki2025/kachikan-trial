@@ -519,7 +519,7 @@ function countsHTML(t) {
     ? `<div class="counts habit">どちらにも当てはまらないと答えた組が、6組のうち${m}組あります。言葉が合わなかった面もあるかもしれませんが、何にでも「当てはまらない」と答えやすいくせが出ている可能性もあります。</div>`
     : "";
   if (!parts.length) return habit;
-  return `<div class="counts">位置は、各組の2枚の点の差で決まるので、2枚の点の高さまでは表していません。今回は、${parts.join("、")}あります。こうした組は、差が小さいため真ん中の近くに置かれますが、「どちらでもない」わけではありません。くわしくは下の6組のカードで確かめてください。</div>${habit}`;
+  return `<div class="counts">位置は、各組の2枚の点の差で決まるので、2枚とも極端な点（どちらも高い、またはどちらも低い）でも、位置は中央に寄ります。今回は、${parts.join("、")}あります。くわしくは下の6組のカードで確かめてください。</div>${habit}`;
 }
 const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
 function standHTML(list) {
