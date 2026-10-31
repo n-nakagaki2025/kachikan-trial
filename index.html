@@ -617,8 +617,28 @@ function summaryHTML(t) {
 const TYPES_NOTE = "強く答えた組の、2枚の答えの組み合わせから読み取っています。平均的な人との比較ではありません。";
 /* ---------- PDF ---------- */
 function pdfBtn() {
+  const note = IS_IOS
+    ? "PDFができたら「保存・送る」から、iPhoneの「ファイル」に保存したり、LINEやメールで送ったりできます。LINEやnoteのアプリの中で開いているとうまくいかないことがあるので、そのときはSafariで開き直してください。"
+    : "PDFは、この端末の「ダウンロード」に保存されます。LINEやnoteのアプリの中で開いているとうまく保存できないことがあるので、そのときはSafariやChromeで開き直してください。";
   return `<div class="row"><button class="btn ghost" id="dl">結果をPDFで受け取る</button><span class="small muted" id="dlStatus" aria-live="polite"></span></div>
-    <p class="small muted">PDFは、この端末の「ダウンロード」に保存されます。LINEやnoteのアプリの中で開いているとうまく保存できないことがあるので、そのときはSafariやChromeで開き直してください。</p>`;
+    <div id="pdfReady"></div>
+    <p class="small muted">${note}</p>`;
+}
+// iPhone・iPad では、ダウンロードすると保存先が分かりにくいため、できたPDFをその場で共有画面に渡す
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function offerPdf(pdf, name) {
+  const blob = pdf.output("blob");
+  const file = new File([blob], name, { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+  const box = document.getElementById("pdfReady");
+  box.innerHTML = `<div class="row">${canShare ? `<button class="btn" id="pdfShare">保存・送る</button>` : ""}<a class="btn ghost" href="${url}" target="_blank" rel="noopener">PDFを開く</a></div>
+    <p class="small">${canShare ? "「保存・送る」を押して「“ファイル”に保存」を選ぶと、iPhoneに残せます。LINEやメールを選べば、そのまま送れます。" : "「PDFを開く」で表示したPDFは、画面の共有ボタンから保存や送信ができます。"}</p>`;
+  const b = document.getElementById("pdfShare");
+  if (b) b.onclick = async () => {
+    try { await navigator.share({ files: [file], title: name.replace(/\.pdf$/, "") }); }
+    catch (e) { if (!e || e.name !== "AbortError") document.getElementById("dlStatus").textContent = "共有画面を開けませんでした。「PDFを開く」からお試しください。"; }
+  };
 }
 function reportBlocks() {
   const date = new Date().toLocaleDateString("ja-JP");
@@ -677,8 +697,9 @@ async function downloadPDF() {
       if (n > 0) pdf.addPage();
       pdf.addImage(cv.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 595.28, 841.89);
     }
-    pdf.save(IS_TRIAL ? "価値観カード_体験版_結果.pdf" : "価値観カード_結果.pdf");
-    st.textContent = "PDFを作成しました。";
+    const fname2 = IS_TRIAL ? "価値観カード_体験版_結果.pdf" : "価値観カード_結果.pdf";
+    if (IS_IOS) { offerPdf(pdf, fname2); st.textContent = "PDFができました。"; }
+    else { pdf.save(fname2); st.textContent = "PDFを作成しました。"; }
   } catch (e) {
     st.textContent = "PDFを作成できませんでした。SafariやChromeで開き直すか、ページを再読み込みしてからお試しください。";
   } finally {
