@@ -152,9 +152,27 @@ details.tr .body{padding-bottom:14px}
 .foot{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:16px}
 .copied{font-size:13px;color:var(--accent)}
 .tE{--tc:var(--tE)} .tA{--tc:var(--tA)} .tC{--tc:var(--tC)} .tN{--tc:var(--tN)} .tO{--tc:var(--tO)}
+/* PDF（画面外で A4・96dpi に描いて画像化。いつも明るい配色） */
+#report{position:fixed;left:-20000px;top:0;pointer-events:none}
+.pg{--bg:#F5F4F8;--surface:#FFFFFF;--ink:#1F1B2A;--muted:#625C70;--line:#DDD9E5;--accent:#7A2E78;--accent-ink:#FFFFFF;--tint:#F3ECF3;
+  --tE:#B4621A;--tA:#A9465E;--tC:#3F6B2A;--tN:#5E4A8C;--tO:#1F6E78;color-scheme:light;
+  width:794px;height:1123px;background:#FFFFFF;color:var(--ink);font-family:var(--body);font-size:13px;line-height:1.7;
+  padding:48px 56px 44px;display:flex;flex-direction:column;gap:14px;overflow:hidden;position:relative}
+.pg .ph{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--accent);padding-bottom:8px;font-size:11px;color:var(--muted);letter-spacing:.08em}
+.pg .ph b{color:var(--accent);font-size:12px}
+.pg .pf{position:absolute;left:56px;right:56px;bottom:18px;display:flex;justify-content:space-between;gap:12px;font-size:9.5px;color:var(--muted)}
+.pg .pbody,.pmeasure{display:flex;flex-direction:column;gap:14px}
+.pmeasure{width:682px;font-size:13px;line-height:1.7;font-family:var(--body)}
+.pg h1{font-size:30px;font-weight:800;line-height:1.3}
+.pg h2{font-size:19px}
+.pg .eb{font-size:11px;letter-spacing:.16em;color:var(--accent);font-weight:700}
+.pg .mu{color:var(--muted)}
+.pg .rsn-s{grid-column:1/-1;font-size:12px;background:var(--tint);border-radius:6px;padding:4px 10px}
 @media (max-width:380px){.picker,.dirs{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -229,16 +247,20 @@ const Core = (() => {
     return "低い側に寄っている";
   }
 
-  // あなたの中で目立つ下位特性：|高−低| が大きい順に最大3つ（差が2以上のもの）
+  // 目立つ下位特性：大きく寄っているもの（|高−低|）と、矛盾を抱えるもの（2枚の合計が7からどれだけ離れているか）を
+  // 同じ物差し（0〜5）で比べ、3以上のものを強い順に。同点なら矛盾を抱えるもの（両方の顔／どちらの言葉も合わない）を先に。
   function standouts(ans, traits, limit = 3) {
     const all = [];
     traits.forEach((tr) => {
       for (let n = 1; n <= 6; n++) {
         const x = facet(ans, tr.key, n);
-        if (x && Math.abs(x.f) >= 2) all.push(x);
+        if (!x || x.type === "center") continue;
+        const contra = x.type === "both" || x.type === "mismatch";
+        const score = contra ? Math.abs(x.sum - 7) : Math.abs(x.f);
+        if (score >= 3) all.push(Object.assign({}, x, { score, contra }));
       }
     });
-    all.sort((a, b) => Math.abs(b.f) - Math.abs(a.f));
+    all.sort((a, b) => b.score - a.score || (b.contra - a.contra));
     return all.slice(0, limit);
   }
 
@@ -458,6 +480,10 @@ function whyHTML(x) {
     ${r ? `<p class="ans">${r.a}${r.coach ? ` <a href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">セッションについて問い合わせる</a>` : ""}</p>` : ""}
   </div>`;
 }
+function whyStatic(x) {
+  const r = REASONS.find((o) => o.k === S.reasons[`${x.t}${x.n}`]);
+  return `<div class="rsn-s">どちらの言葉も合わなかった理由：${r ? esc(r.q) : "（未選択）"}</div>`;
+}
 function bindWhy(root) {
   root.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
     const key = b.dataset.why;
@@ -477,13 +503,13 @@ function laneHTML(name, v, reversed) {
   return `<div class="lane"><span class="nm">${esc(name)}</span>
     <div class="trk" role="img" aria-label="${esc(name)}：${v}点"><span class="bar${no}" style="left:${left}%;width:${width}%"></span><span class="pt${no}" style="left:${pos}%">${v}</span></div></div>`;
 }
-function facetsHTML(t) {
+function facetsHTML(t, pdf = false) {
   const r = Core.trait(S.answers, t);
   return `<div class="facets t${t}"><div class="axhd"><span></span><span><span>← 低い側</span><span>高い側 →</span></span></div>${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
       ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
-      : x.type === "mismatch" ? whyHTML(x) : "";
+      : x.type === "mismatch" ? (pdf ? whyStatic(x) : whyHTML(x)) : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
       <div class="lanes">${laneHTML(hi.name, x.h, false)}${laneHTML(lo.name, x.l, true)}</div>
@@ -509,51 +535,100 @@ function styleHTML(ids) {
     ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「両方の顔がある」は少し割り引いて見てください。</p>`
     : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらの言葉も合わない」は少し割り引いて見てください。</p>`;
 }
+const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
 function standHTML(list) {
-  if (!list.length) return `<p class="small muted">どの下位特性も、高い側と低い側の差が小さめでした。どちらかに大きく寄らず、場面に合わせて動けるのかもしれません。</p>`;
+  if (!list.length) return `<p class="small muted">大きく寄っているものも、反対の2枚の答えが食い違うものもありませんでした。全体に、どちらかの端へ大きく振れずに答えています。</p>`;
   return `<div class="stand">${list.map((x) => {
-    const side = x.f > 0 ? "H" : "L";
-    const c = D.byId[`${x.t}-${side}${x.n}`];
-    return `<div class="st t${x.t}"><span class="nm">${esc(c.name)}</span><span class="sub">${esc(tname(x.t))}・${esc(fname(x.t, x.n))}（${side === "H" ? "高い側" : "低い側"}）　${esc(c.desc)}</span></div>`;
+    const lo = D.byId[`${x.t}-L${x.n}`], hi = D.byId[`${x.t}-H${x.n}`];
+    const head = x.contra ? `${esc(hi.name)}／${esc(lo.name)}` : esc((x.f > 0 ? hi : lo).name);
+    const sub = x.contra
+      ? `${x.type === "both" ? "反対の2枚の、どちらにも当てはまる" : "反対の2枚の、どちらにも当てはまらない"}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`
+      : `${(x.f > 0 ? hi : lo).desc}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`;
+    return `<div class="st t${x.t}"><span class="sub">${esc(tname(x.t))}・${esc(fname(x.t, x.n))}　<b>${STAND_TAG[x.type]}</b></span><span class="nm">${head}</span><span class="sub">${esc(sub)}</span></div>`;
   }).join("")}</div>`;
 }
-function summaryText() {
-  const lines = [IS_TRIAL ? "価値観カード 体験版の結果" : "価値観カードの結果", ""];
-  const ts = IS_TRIAL ? [CONFIG.trialTrait] : D.traits.map((t) => t.key);
-  ts.forEach((t) => {
-    const r = Core.trait(S.answers, t);
-    lines.push(`■${tname(t)}：${Core.lean(r.mean, r.split)}`);
-    r.facets.forEach((x) => { const rs = REASONS.find((o) => o.k === S.reasons[`${t}${x.n}`]); lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}（${TYPE_LABEL[x.type]}${rs ? `：${rs.q}` : ""}）`); });
-  });
-  if (!IS_TRIAL && S.oneUp && S.oneUp.cardId) lines.push("", `ワンランク上の一枚：${D.byId[S.oneUp.cardId].name}`);
-  return lines.join("\n");
+const STAND_NOTE = "大きく寄っているものと、反対の2枚の答えが食い違うもの（両方の顔がある／どちらの言葉も合わない）の中から、度合いの強い順に挙げています。";
+/* ---------- PDF ---------- */
+function pdfBtn() {
+  return `<div class="row"><button class="btn ghost" id="dl">結果をPDFで受け取る</button><span class="small muted" id="dlStatus" aria-live="polite"></span></div>`;
 }
-function copyBtn() {
-  return `<div class="row"><button class="btn ghost" id="copy">結果を文字でコピー</button><span class="copied" id="copied" hidden>コピーしました</span></div>`;
+function reportBlocks() {
+  const date = new Date().toLocaleDateString("ja-JP");
+  const B = [];
+  if (IS_TRIAL) {
+    const t = CONFIG.trialTrait;
+    B.push(`<div><span class="eb">VALUE CARDS / TRIAL</span><h1>価値観カード 体験版<br>${esc(tname(t))}の結果</h1><p class="mu">${date}　外向性の12枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
+    B.push(axisHTML(t));
+    const st = styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id)); if (st) B.push(st);
+    B.push(`<section class="sec"><h2>この特性の中で目立つもの</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, [D.traitByKey[t]], 3))}</section>`);
+    B.push(`<section class="sec"><h2>6つの下位特性</h2>${facetsHTML(t, true)}</section>`);
+    B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてで5つの特性と30の下位特性を見て、これから伸ばしたい「ワンランク上の一枚」を受け取れます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
+  } else {
+    const ts = D.traits.map((x) => x.key);
+    B.push(`<div><span class="eb">VALUE CARDS</span><h1>価値観カード<br>あなたの中の傾向</h1><p class="mu">${date}　60枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
+    ts.forEach((t) => B.push(axisHTML(t)));
+    const st = styleHTML(D.cards.map((c) => c.id)); if (st) B.push(st);
+    B.push(`<section class="sec"><h2>あなたの中で目立つ下位特性</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, D.traits, 5))}</section>`);
+    if (S.oneUp && S.oneUp.cardId) {
+      const c = D.byId[S.oneUp.cardId];
+      B.push(`<div class="onecard t${c.trait}"><span class="lb">ワンランク上の一枚</span><span class="nm">${esc(c.name)}</span><p>${esc(c.desc)}</p><p class="small mu">${esc(tname(c.trait))}・${esc(fname(c.trait, c.n))}（${c.side === "H" ? "高い側" : "低い側"}）　今の答え：${S.answers[c.id]}点</p></div>`);
+    }
+    ts.forEach((t) => B.push(`<section class="sec"><h2>${esc(tname(t))}の6つの下位特性</h2>${facetsHTML(t, true)}</section>`));
+  }
+  return B;
 }
-function bindCopy() {
-  const b = document.getElementById("copy");
-  if (!b) return;
-  b.onclick = () => {
-    const t = summaryText();
-    const ok = () => (document.getElementById("copied").hidden = false);
-    const fallback = () => {
-      const ta = document.createElement("textarea");
-      ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); ok(); } catch (e) {}
-      ta.remove();
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fallback);
-    else fallback();
-  };
+async function downloadPDF() {
+  const btn = document.getElementById("dl"), st = document.getElementById("dlStatus");
+  if (!window.html2canvas || !window.jspdf) { st.textContent = "PDFの作成機能を読み込めませんでした。通信の良い場所で、ページを再読み込みしてください。"; return; }
+  btn.disabled = true; st.textContent = "PDFを作成しています…";
+  let host = document.getElementById("report");
+  if (!host) { host = document.createElement("div"); host.id = "report"; host.setAttribute("aria-hidden", "true"); document.body.appendChild(host); }
+  try {
+    // 1) 各ブロックの高さを測って、ページに詰める
+    const blocks = reportBlocks();
+    host.innerHTML = `<div class="pg" style="height:auto"><div class="pmeasure">${blocks.map((b) => `<div class="blk">${b}</div>`).join("")}</div></div>`;
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const hs = [...host.querySelectorAll(".blk")].map((e) => e.offsetHeight);
+    const LIMIT = 1123 - 48 - 44 - 34 - 30, GAP = 14;
+    const pages = []; let cur = [], used = 0;
+    blocks.forEach((b, i) => {
+      const h = hs[i] + (cur.length ? GAP : 0);
+      if (cur.length && used + h > LIMIT) { pages.push(cur); cur = []; used = 0; }
+      used += hs[i] + (cur.length ? GAP : 0); cur.push(b);
+    });
+    if (cur.length) pages.push(cur);
+    const title = IS_TRIAL ? "価値観カード 体験版 結果" : "価値観カード 結果";
+    host.innerHTML = pages.map((p, n) => `<div class="pg"><div class="ph"><b>${title}</b><span>${new Date().toLocaleDateString("ja-JP")}</span></div>
+      <div class="pbody">${p.join("")}</div>
+      <div class="pf"><span>©2026 桜梅桃李コンサルティング｜診断ではありません。カードは下仲ほか（1998）を参考にしたオリジナルです。</span><span>${n + 1} / ${pages.length}</span></div></div>`).join("");
+    // 2) 1ページずつ画像にして PDF へ
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
+    const pgs = host.querySelectorAll(".pg");
+    for (let n = 0; n < pgs.length; n++) {
+      st.textContent = `PDFを作成しています…（${n + 1} / ${pgs.length}ページ）`;
+      const cv = await html2canvas(pgs[n], { scale: 2, backgroundColor: "#FFFFFF", logging: false });
+      if (n > 0) pdf.addPage();
+      pdf.addImage(cv.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 595.28, 841.89);
+    }
+    pdf.save(IS_TRIAL ? "価値観カード_体験版_結果.pdf" : "価値観カード_結果.pdf");
+    st.textContent = "PDFを作成しました。";
+  } catch (e) {
+    st.textContent = "PDFを作成できませんでした。ページを再読み込みしてからお試しください。";
+  } finally {
+    btn.disabled = false; host.innerHTML = "";
+  }
+}
+function bindPdf() {
+  const b = document.getElementById("dl");
+  if (b) b.onclick = downloadPDF;
 }
 
 /* ---------- 画面：結果 ---------- */
 function viewResult() {
   if (IS_TRIAL) return viewTrialResult();
   const ts = D.traits.map((t) => t.key);
-  const stands = Core.standouts(S.answers, D.traits, 3);
+  const stands = Core.standouts(S.answers, D.traits, 5);
   const both = [], mism = [];
   ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.type === "mismatch") mism.push(x); }));
   const openT = new Set(mism.map((x) => x.t));
@@ -563,7 +638,7 @@ function viewResult() {
       <p class="small muted">大きな点は、各下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
     <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
     <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
-      <p class="small muted">高い側と低い側の差が大きかったものを、最大3つ挙げています。</p>${standHTML(stands)}</section>
+      <p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
     ${styleHTML(D.cards.map((c) => c.id))}
     ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
@@ -575,10 +650,10 @@ function viewResult() {
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
     </section>
     <section class="sec" id="oneup"></section>
-    ${copyBtn()}
+    ${pdfBtn()}
     <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
     ${footer()}`;
-  bindCopy();
+  bindPdf();
   bindWhy(app);
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   renderOneUp();
@@ -626,12 +701,12 @@ function renderOneUp() {
     ${card ? `<div class="callout"><h3>ひとりで考えるのが難しければ</h3><p class="small">この一枚をどう生かすかは、コーチングのセッションで一緒に考えることもできます。</p><div class="row"><a class="btn" href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">問い合わせる</a></div></div>` : ""}`;
   box.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { S.oneUp = { t: b.dataset.t }; save(); renderOneUp(); }));
   box.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => { S.oneUp = { t: sel.t, side: b.dataset.s }; save(); renderOneUp(); }));
-  bindCopy();
+  bindPdf();
 }
 
 function viewTrialResult() {
   const t = CONFIG.trialTrait;
-  const stands = Core.standouts(S.answers, [D.traitByKey[t]], 2);
+  const stands = Core.standouts(S.answers, [D.traitByKey[t]], 3);
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
       <p class="small muted">大きな点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
@@ -639,8 +714,8 @@ function viewTrialResult() {
     ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
     <section class="sec"><h2>6つの下位特性</h2>
 ${facetsHTML(t)}</section>
-    <section class="sec"><h2>この特性の中で目立つもの</h2>${standHTML(stands)}</section>
-    ${copyBtn()}
+    <section class="sec"><h2>この特性の中で目立つもの</h2><p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
+    ${pdfBtn()}
     <section class="resume">
       <h3>本編では、ここから先ができます</h3>
       <ul class="steps">
@@ -654,7 +729,7 @@ ${facetsHTML(t)}</section>
     <div class="row"><button class="textbtn" id="reset">答え直す</button></div>
     ${footer()}`;
   bindWhy(app);
-  bindCopy();
+  bindPdf();
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   window.scrollTo(0, 0);
 }
