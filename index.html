@@ -107,6 +107,14 @@ button{font:inherit;cursor:pointer;color:inherit}
 .ty.high,.ty.low{color:var(--tc);border-color:var(--tc)}
 .ty.both{background:var(--tc);border-color:var(--tc);color:var(--surface)}
 .ty.center{border-style:dashed}
+.ty.mismatch{border-style:dashed;border-color:var(--accent);color:var(--accent)}
+.why{grid-column:1/-1;background:var(--tint);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.why .wq{font-weight:700}
+.why .opts{display:flex;flex-direction:column;gap:6px}
+.why .opt{background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;font-size:14px}
+.why .opt[aria-pressed="true"]{border-color:var(--accent)}
+.why .ans{font-size:14px}
+.why .ans a{color:var(--accent);font-weight:700}
 .bfly{grid-column:1/-1;display:grid;grid-template-columns:1fr 2px 1fr;align-items:center;height:12px}
 .bfly .half{height:12px;background:var(--bg);position:relative}
 .bfly .half.l{border-radius:6px 0 0 6px}.bfly .half.r{border-radius:0 6px 6px 0}
@@ -183,11 +191,11 @@ const Core = (() => {
     let type;
     if (f >= 2) type = "high";
     else if (f <= -2) type = "low";
-    else if (sum >= 9) type = "both";  // 平均4.5以上
-    else type = "center";
-    const lowBoth = type === "center" && sum <= 5; // どちらにも「当てはまらない」寄り
-    const flag = type === "both" ? "both" : lowBoth ? "center" : null;
-    return { t, n, h, l, f, sum, type, lowBoth, flag };
+    else if (sum >= 9) type = "both";      // どちらも高い：場面で変わる、または同意しやすいくせ
+    else if (sum <= 4) type = "mismatch";  // どちらも強く否定：言葉が合わない、場面がない、など（本人に問う）
+    else type = "center";                  // 差が小さく合計も中くらい：どちらの端でもない
+    const flag = type === "both" || type === "mismatch" ? type : null;
+    return { t, n, h, l, f, sum, type, flag };
   }
 
   function trait(ans, t) {
@@ -279,16 +287,18 @@ const fname = (k, n) => D.traitByKey[k].facets[n - 1];
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
 }
-let S = Object.assign({ answers: {}, queue: [], pos: 0, trialTrait: null, oneUp: null }, load());
+let S = Object.assign({ answers: {}, queue: [], pos: 0, oneUp: null, reasons: {} }, load());
+if (!S.reasons) S.reasons = {};
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
 function resetAll() {
   if (IS_TRIAL) {  // 体験版では外向性の12枚だけを消す
     scopeIds().forEach((id) => delete S.answers[id]);
+    for (let n = 1; n <= 6; n++) delete S.reasons[`${CONFIG.trialTrait}${n}`];
     S.queue = []; S.pos = 0;
   } else {
-    S = { answers: {}, queue: [], pos: 0, oneUp: null };
+    S = { answers: {}, queue: [], pos: 0, oneUp: null, reasons: {} };
   }
   save();
 }
@@ -412,14 +422,40 @@ function axisHTML(t) {
     ${countsHTML(t)}
   </div>`;
 }
-const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "両方の顔がある", center: "どちらでもない（真ん中）" };
+const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "両方の顔がある", center: "どちらでもない（真ん中）", mismatch: "どちらの言葉も合わない" };
+const REASONS = [
+  { k: "words", q: "言葉の一部が、自分と違った", a: "説明のどの部分が自分と違ったかを考えてみると、自分らしい言い方が見つかるかもしれません。" },
+  { k: "scene", q: "そういう場面が、あまりない", a: "ふだんの生活で、この面が問われることが少ないのかもしれません。" },
+  { k: "varies", q: "場面によって変わるので、どちらとも言えない", a: "両方の顔があるのかもしれません。どんな場面で、どちらの自分が出ているか振り返ってみてください。" },
+  { k: "unsure", q: "今の自分がどちらか、よく分からない", a: "変化の途中にいるのかもしれません。以前の自分と今の自分を比べてみると、手がかりが見つかることがあります。", coach: true },
+  { k: "unknown", q: "なぜだか分からない", a: "理由がすぐに言葉にならないところにこそ、大事な手がかりがあることもあります。コーチングのセッションで話してみると、糸口が見つかるかもしれません。", coach: true },
+];
+function whyHTML(x) {
+  const key = `${x.t}${x.n}`, sel = S.reasons[key];
+  const r = REASONS.find((o) => o.k === sel);
+  return `<div class="why" id="why-${key}">
+    <span class="wq">この2枚が、どちらも自分に合わなかったのはなぜでしょう？</span>
+    <div class="opts">${REASONS.map((o) => `<button class="opt" data-why="${key}" data-k="${o.k}" aria-pressed="${sel === o.k}">${o.q}</button>`).join("")}</div>
+    ${r ? `<p class="ans">${r.a}${r.coach ? ` <a href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">セッションについて問い合わせる</a>` : ""}</p>` : ""}
+  </div>`;
+}
+function bindWhy(root) {
+  root.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
+    const key = b.dataset.why;
+    S.reasons[key] = b.dataset.k; save();
+    const x = Core.facet(S.answers, key[0], Number(key.slice(1)));
+    const box = document.getElementById(`why-${key}`);
+    box.outerHTML = whyHTML(x);
+    bindWhy(document.getElementById(`why-${key}`).parentElement);
+  }));
+}
 function facetsHTML(t) {
   const r = Core.trait(S.answers, t);
   return `<div class="facets t${t}">${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
       ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
-      : x.lowBoth ? `<div class="flagtx">反対の2枚の、どちらにも当てはまらないと答えています。どちらの端にも寄らず、ほどほどの位置にいるのかもしれません。どちらのカードの言葉もしっくりこなかった場合もあります。</div>` : "";
+      : x.type === "mismatch" ? whyHTML(x) : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
       <div class="cd lo"><b>${esc(lo.name)}</b> <span class="sc">${x.l}</span></div>
@@ -431,11 +467,12 @@ function facetsHTML(t) {
 }
 function countsHTML(t) {
   const fs = Core.trait(S.answers, t).facets;
-  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "center").length;
-  if (!b && !n) return "";
+  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "center").length, m = fs.filter((x) => x.type === "mismatch").length;
+  if (!b && !n && !m) return "";
   const parts = [];
   if (b) parts.push(`両方の顔がある ${b}つ`);
   if (n) parts.push(`どちらでもない（真ん中） ${n}つ`);
+  if (m) parts.push(`どちらの言葉も合わない ${m}つ`);
   return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>`;
 }
 function styleHTML(ids) {
@@ -444,7 +481,7 @@ function styleHTML(ids) {
   const m = st.m.toFixed(1);
   return st.kind === "yes"
     ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「両方の顔がある」は少し割り引いて見てください。</p>`
-    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらでもない（真ん中）」は少し割り引いて見てください。</p>`;
+    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらの言葉も合わない」は少し割り引いて見てください。</p>`;
 }
 function standHTML(list) {
   if (!list.length) return `<p class="small muted">どの下位特性も、高い側と低い側の差が小さめでした。どちらかに大きく寄らず、場面に合わせて動けるのかもしれません。</p>`;
@@ -460,7 +497,7 @@ function summaryText() {
   ts.forEach((t) => {
     const r = Core.trait(S.answers, t);
     lines.push(`■${tname(t)}：${Core.lean(r.mean)}`);
-    r.facets.forEach((x) => lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}（${TYPE_LABEL[x.type]}）`));
+    r.facets.forEach((x) => { const rs = REASONS.find((o) => o.k === S.reasons[`${t}${x.n}`]); lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}（${TYPE_LABEL[x.type]}${rs ? `：${rs.q}` : ""}）`); });
   });
   if (!IS_TRIAL && S.oneUp && S.oneUp.cardId) lines.push("", `ワンランク上の一枚：${D.byId[S.oneUp.cardId].name}`);
   return lines.join("\n");
@@ -491,8 +528,9 @@ function viewResult() {
   if (IS_TRIAL) return viewTrialResult();
   const ts = D.traits.map((t) => t.key);
   const stands = Core.standouts(S.answers, D.traits, 3);
-  const both = [], neither = [];
-  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.lowBoth) neither.push(x); }));
+  const both = [], mism = [];
+  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.type === "mismatch") mism.push(x); }));
+  const openT = new Set(mism.map((x) => x.t));
 
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
@@ -504,18 +542,19 @@ function viewResult() {
     ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
       <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
-    ${neither.length ? `<section class="callout"><h3>どちらにも当てはまらないもの（真ん中にいるところ）</h3>
-      <p>${neither.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">どちらの端にも寄らず、ほどほどの位置にいるところかもしれません。両方の顔がある場合と違い、場面で大きく変わるというより、いつも同じくらいの位置にいると考えられます。どちらのカードの言葉もしっくりこなかった可能性もあります。</p></section>` : ""}
+    ${mism.length ? `<section class="callout"><h3>どちらの言葉も合わなかったもの</h3>
+      <p>${mism.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
+      <p class="small muted">反対の2枚を、どちらも強く「当てはまらない」と答えたものです。理由はいくつか考えられるので、下の30の下位特性の中で、自分に近い理由を選んでみてください。</p></section>` : ""}
     <section class="sec"><h2>30の下位特性</h2>
       <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。</p>
-      ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
+      ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
     </section>
     <section class="sec" id="oneup"></section>
     ${copyBtn()}
     <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
     ${footer()}`;
   bindCopy();
+  bindWhy(app);
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   renderOneUp();
   window.scrollTo(0, 0);
@@ -581,7 +620,7 @@ function viewTrialResult() {
       <h3>本編では、ここから先ができます</h3>
       <ul class="steps">
         <li>60枚すべてで、5つの特性と30の下位特性の傾向を見る</li>
-        <li>反対の2枚のどちらにも当てはまる「両方の顔」と、どちらでもない「真ん中」を見分ける</li>
+        <li>30の下位特性すべてで、「両方の顔」「真ん中」「どちらの言葉も合わない」を見分ける</li>
         <li>これから伸ばしたい方向の「ワンランク上の一枚」と、今週ためす問いを受け取る</li>
       </ul>
       <p class="small">体験版の12枚の回答は、この端末に保存されています。同じ端末で本編を開けば、残りの48枚に答えるだけで済みます。</p>
@@ -589,6 +628,7 @@ function viewTrialResult() {
     </section>
     <div class="row"><button class="textbtn" id="reset">答え直す</button></div>
     ${footer()}`;
+  bindWhy(app);
   bindCopy();
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
   window.scrollTo(0, 0);
