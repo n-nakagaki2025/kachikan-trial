@@ -507,19 +507,19 @@ function facetsHTML(t, pdf = false) {
 }
 function countsHTML(t) {
   const fs = Core.trait(S.answers, t).facets;
-  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "center").length, m = fs.filter((x) => x.type === "mismatch").length;
-  if (!b && !n && !m) return "";
+  const b = fs.filter((x) => x.type === "both").length, m = fs.filter((x) => x.type === "mismatch").length;
+  // 位置は2枚の点の「差」だけで決まるため、2枚とも高い組・2枚とも低い組は真ん中付近に置かれる。そのことを、該当する組があるときだけ説明する
   const parts = [];
-  if (b) parts.push(`「両方の顔がある」と判定された組が${b}つ`);
-  if (n) parts.push(`「どちらでもない（真ん中）」と判定された組が${n}つ`);
-  if (m) parts.push(`「どちらの言葉も合わない」と判定された組が${m}つ`);
+  if (b) parts.push(`2枚とも高い点をつけた組（両方の顔がある）が${b}つ`);
+  if (m) parts.push(`2枚とも低い点をつけた組（どちらの言葉も合わない）が${m}つ`);
   // 答え方のくせは、1組では判断しない。同じ特性の中で3組以上そろったときだけ触れる
   const habit = b >= 3
     ? `<div class="counts habit">どちらにも当てはまると答えた組が、6組のうち${b}組あります。場面で使い分けている面もあるかもしれませんが、何にでも「当てはまる」と答えやすいくせが出ている可能性もあります。</div>`
     : m >= 3
     ? `<div class="counts habit">どちらにも当てはまらないと答えた組が、6組のうち${m}組あります。言葉が合わなかった面もあるかもしれませんが、何にでも「当てはまらない」と答えやすいくせが出ている可能性もあります。</div>`
     : "";
-  return `<div class="counts">6組のうち、${parts.join("、")}。この点は上の位置には表れないので、各組の結果も見てください。</div>${habit}`;
+  if (!parts.length) return habit;
+  return `<div class="counts">位置は、各組の2枚の点の差で決まるので、2枚の点の高さまでは表していません。今回は、${parts.join("、")}あります。こうした組は、差が小さいため真ん中の近くに置かれますが、「どちらでもない」わけではありません。くわしくは下の6組のカードで確かめてください。</div>${habit}`;
 }
 const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
 function standHTML(list) {
