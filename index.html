@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="ビッグファイブをもとにした価値観カードのうち、ひとつの特性の12枚に答えて、自分の中の傾向を見られる無料の体験版です。">
+<title>価値観カード 体験版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: SQF体験版と同じ見た目の1カラム。カードは1枚ずつ、答えは縦に6つ並ぶ。 */
+:root{
+  --bg:#F5F4F8; --surface:#FFFFFF; --ink:#1F1B2A; --muted:#625C70; --line:#DDD9E5;
+  --accent:#7A2E78; --accent-ink:#FFFFFF; --tint:#F3ECF3;
+  --tE:#B4621A; --tA:#A9465E; --tC:#3F6B2A; --tN:#5E4A8C; --tO:#1F6E78;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17141E; --surface:#221E2B; --ink:#EEEAF4; --muted:#A79FB5; --line:#383244;
+  --accent:#D58BD2; --accent-ink:#1A1520; --tint:#2C2333;
+  --tE:#E59B55; --tA:#E58AA0; --tC:#94BF79; --tN:#B3A0E0; --tO:#6BBAC2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17141E; --surface:#221E2B; --ink:#EEEAF4; --muted:#A79FB5; --line:#383244;
+  --accent:#D58BD2; --accent-ink:#1A1520; --tint:#2C2333;
+  --tE:#E59B55; --tA:#E58AA0; --tC:#94BF79; --tN:#B3A0E0; --tO:#6BBAC2; color-scheme:dark}
+
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.35}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+button{font:inherit;cursor:pointer;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{display:inline-block;background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:14px 28px;font-weight:700;font-size:16px;text-decoration:none;text-align:center}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.textbtn{background:none;border:0;padding:6px 0;color:var(--muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* Intro */
+.hero{display:flex;flex-direction:column;gap:14px}
+.hero h1{font-size:clamp(28px,7vw,40px);font-weight:800}
+.hero .lead{font-size:17px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted)}
+.facts b{font-family:var(--mono);color:var(--ink);font-weight:500}
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.detail h3{font-size:19px}
+.steps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:4px;font-size:15px}
+.note{border-left:4px solid var(--accent);padding:2px 0 2px 14px;font-size:15px}
+.resume{background:var(--surface);border:1.5px solid var(--accent);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.resume h3{font-size:19px}
+.picker{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px 14px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pick .nm{font-family:var(--display);font-weight:800;font-size:18px;color:var(--tc)}
+.pick .sub{font-size:12px;color:var(--muted)}
+.pick:hover{border-color:var(--tc)}
+.pick[aria-pressed="true"]{border-color:var(--ink)}
+
+/* Question */
+.progress{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.bar{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px 22px;display:flex;flex-direction:column;gap:10px;min-height:150px;justify-content:center}
+.qcard .nm{font-family:var(--display);font-weight:800;font-size:clamp(26px,7vw,34px);line-height:1.3}
+.qcard .ds{font-size:17px}
+.ask{font-size:15px;color:var(--muted)}
+.likert{display:flex;flex-direction:column;gap:8px}
+.lk{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 16px;text-align:left;font-size:16px;font-weight:500;transition:border-color .15s,background .15s}
+.lk .dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center}
+.lk[aria-pressed="true"]{border-color:var(--accent);background:var(--tint)}
+.lk[aria-pressed="true"] .dot{border-color:var(--accent)}
+.lk[aria-pressed="true"] .dot::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.lk:hover{border-color:var(--accent)}
+.qnav{display:flex;justify-content:space-between;align-items:center}
+
+/* Result */
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec > h2{font-size:22px}
+.axis{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:6px}
+.axis .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.axis .tn{font-family:var(--display);font-weight:800;font-size:19px;color:var(--tc)}
+.axis .ln{font-size:14px;font-weight:700}
+.track{position:relative;height:22px}
+.track::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line)}
+.track::after{content:"";position:absolute;left:50%;top:4px;width:2px;height:14px;background:var(--muted);transform:translateX(-1px)}
+.track i{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:var(--tc);border:2px solid var(--surface);transform:translateX(-8px);z-index:1}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.facets{display:flex;flex-direction:column;gap:10px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.fr:first-child{border-top:0}
+.fr .fn{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.fr .cd{font-size:14px;min-width:0}
+.fr .cd b{font-weight:700}
+.fr .cd.hi{text-align:right}
+.fr .sc{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.dbar{grid-column:1/-1;position:relative;height:10px;background:var(--bg);border-radius:5px}
+.dbar::after{content:"";position:absolute;left:50%;top:-2px;width:2px;height:14px;background:var(--muted);transform:translateX(-1px)}
+.dbar i{position:absolute;top:0;height:10px;background:var(--tc);border-radius:5px}
+.flagtx{grid-column:1/-1;font-size:13px;color:var(--ink);background:var(--tint);border-radius:6px;padding:4px 10px}
+details.tr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 16px}
+details.tr summary{cursor:pointer;padding:14px 0;font-family:var(--display);font-weight:800;font-size:18px;color:var(--tc);list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.tr summary::-webkit-details-marker{display:none}
+details.tr summary::after{content:"＋";font-family:var(--body);color:var(--muted)}
+details.tr[open] summary::after{content:"－"}
+details.tr .body{padding-bottom:14px}
+.stand{display:flex;flex-direction:column;gap:8px}
+.st{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:0 10px 10px 0;padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.st .nm{font-family:var(--display);font-weight:800;font-size:18px}
+.st .sub{font-size:13px;color:var(--muted)}
+.callout{border-left:4px solid var(--accent);background:var(--surface);padding:14px 16px;border-radius:0 10px 10px 0;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.callout h3{font-size:17px}
+.onecard{background:var(--surface);border:2px solid var(--tc);border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:8px}
+.onecard .lb{font-size:12px;letter-spacing:.12em;color:var(--muted)}
+.onecard .nm{font-family:var(--display);font-weight:800;font-size:28px;color:var(--tc);line-height:1.3}
+.qs{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+.dirs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.foot{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:16px}
+.copied{font-size:13px;color:var(--accent)}
+.tE{--tc:var(--tE)} .tA{--tc:var(--tA)} .tC{--tc:var(--tC)} .tN{--tc:var(--tN)} .tO{--tc:var(--tO)}
+@media (max-width:380px){.picker,.dirs{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app" aria-live="polite"></div>
+
+<script>
+const CONFIG = {"mode": "trial", "articleUrl": "https://note.com/s_reflection", "contactUrl": "https://note.com/s_reflection/message"};
+const DATA = {"traits": [{"key": "E", "name": "外向性", "facets": ["温かさ", "群居性", "断行性", "活動性", "刺激希求性", "よい感情"]}, {"key": "A", "name": "協調性", "facets": ["信頼", "実直さ", "利他性", "応諾", "慎み深さ", "優しさ"]}, {"key": "C", "name": "誠実性", "facets": ["コンピテンス", "秩序", "良心性", "達成追求", "自己鍛練", "慎重さ"]}, {"key": "N", "name": "否定的情動性", "facets": ["不安", "敵意", "抑うつ", "自意識", "衝動性", "傷つきやすさ"]}, {"key": "O", "name": "開放性", "facets": ["空想", "審美性", "感情", "行為", "アイデア", "価値"]}], "cards": [{"id": "E-L1", "name": "人と距離を置く", "desc": "人とは一定の距離を保ち、改まった接し方をする"}, {"id": "E-H1", "name": "人なつっこさ", "desc": "人に親しみを込めて接し、気軽に話しかける"}, {"id": "E-L2", "name": "一人の時間", "desc": "人混みを避け、一人で過ごす時間を好む"}, {"id": "E-H2", "name": "人の輪が好き", "desc": "人が集まる場や、たくさんの友人との交流を好む"}, {"id": "E-L3", "name": "控えめ", "desc": "前に出ず、強く意見を言うのは控える"}, {"id": "E-H3", "name": "自己主張", "desc": "自信をもって意見を言い、場を引っぱる"}, {"id": "E-L4", "name": "マイペース", "desc": "あわてず、ゆっくり慎重に動く"}, {"id": "E-H4", "name": "活力", "desc": "エネルギッシュで、テンポよく動く"}, {"id": "E-L5", "name": "安全第一", "desc": "強すぎる刺激は避け、危ないことはしない"}, {"id": "E-H5", "name": "スリルを楽しむ", "desc": "強い刺激を求め、ときに危ないことにも挑む"}, {"id": "E-L6", "name": "まじめ", "desc": "はしゃぐことは少なく、まじめに過ごす"}, {"id": "E-H6", "name": "陽気さ", "desc": "元気で、うれしさや楽しさが表に出やすい"}, {"id": "A-L1", "name": "疑ってかかる", "desc": "人の言葉や意図を、まず疑って確かめる"}, {"id": "A-H1", "name": "信頼", "desc": "人の善意を信じる"}, {"id": "A-L2", "name": "人を操ろうとする", "desc": "相手を自分の望む方向へ動かそうと働きかける"}, {"id": "A-H2", "name": "裏表がない", "desc": "率直で誠実、駆け引きをしない"}, {"id": "A-L3", "name": "自分優先", "desc": "人の問題には深入りせず、自分のことを優先する"}, {"id": "A-H3", "name": "人のために動く", "desc": "人の役に立とうとして動く"}, {"id": "A-L4", "name": "負けん気", "desc": "競い合うことを好み、反発をためらわず表に出す"}, {"id": "A-H4", "name": "人に譲る", "desc": "争いを避けて人に譲り、人を許す"}, {"id": "A-L5", "name": "自負心", "desc": "自分は優れていると考え、それを表に出す"}, {"id": "A-H5", "name": "謙虚さ", "desc": "へりくだり、自分を誇らない"}, {"id": "A-L6", "name": "割り切り", "desc": "情に流されず、現実的な理屈で判断する"}, {"id": "A-H6", "name": "情に厚い", "desc": "人の困りごとに心を動かされ、同情する"}, {"id": "C-L1", "name": "自己評価が辛め", "desc": "自分の力や準備はまだ足りないと感じやすい"}, {"id": "C-H1", "name": "やれる手応え", "desc": "たいていの問題にはうまく対処できると思っている"}, {"id": "C-L2", "name": "段取りが大まか", "desc": "準備や段取りにはあまり手をかけない"}, {"id": "C-H2", "name": "秩序", "desc": "身の回りや物事をきちんと整え、準備しておく"}, {"id": "C-L3", "name": "義務感が薄い", "desc": "決まりや義務にあまり縛られず、物事をゆるやかに扱う"}, {"id": "C-H3", "name": "筋を通す", "desc": "決まりや倫理を守り、果たすべきことに忠実に従う"}, {"id": "C-L4", "name": "野心が薄い", "desc": "高い目標や野心はあまり持たない"}, {"id": "C-H4", "name": "目標達成", "desc": "高い目標を掲げ、達成に向けて努力する"}, {"id": "C-L5", "name": "見切りが早い", "desc": "気が乗らないと手が止まり、早めにやめたくなる"}, {"id": "C-H5", "name": "やり抜く", "desc": "飽きたり気が散ったりせず、最後までやり終える"}, {"id": "C-L6", "name": "即興性", "desc": "先のことを考えすぎず、思いついたら話したり動いたりする"}, {"id": "C-H6", "name": "熟慮", "desc": "行動する前によく考える"}, {"id": "N-L1", "name": "リラックス", "desc": "穏やかで、あまり緊張や恐れを感じない"}, {"id": "N-H1", "name": "先を案じる", "desc": "緊張しやすく、先のことを心配しやすい"}, {"id": "N-L2", "name": "腹を立てにくい", "desc": "めったに腹を立てず、人と友好的に接する"}, {"id": "N-H2", "name": "沸点が低め", "desc": "いら立ちや怒りを感じやすい"}, {"id": "N-L3", "name": "くよくよしない", "desc": "めったに落ち込まず、先に希望を持てる"}, {"id": "N-H3", "name": "気分が沈みやすい", "desc": "がっかりしたり、気分が落ち込んだりしやすい"}, {"id": "N-L4", "name": "物おじしない", "desc": "人前でも気後れせず、ゆとりがある"}, {"id": "N-H4", "name": "人目に敏感", "desc": "人前で恥ずかしさや気後れを感じやすい"}, {"id": "N-L5", "name": "欲をこらえる", "desc": "誘惑があっても、自分を抑えられる"}, {"id": "N-H5", "name": "欲求に動かされやすい", "desc": "やりたいと思ったら、こらえきれないことが多い"}, {"id": "N-L6", "name": "回復力", "desc": "困難の中でも冷静さを保ち、立ち直れる"}, {"id": "N-H6", "name": "傷つきやすい", "desc": "強いストレスがかかると、混乱しやすい"}, {"id": "O-L1", "name": "現実を見る", "desc": "空想より、現実的に考えることを好む"}, {"id": "O-H1", "name": "空想好き", "desc": "想像をふくらませ、空想を楽しむ"}, {"id": "O-L2", "name": "芸術に関心が薄い", "desc": "芸術や美しいものには、あまり心を動かされない"}, {"id": "O-H2", "name": "美的感受性", "desc": "芸術や美しいものに心を動かされる"}, {"id": "O-L3", "name": "淡々としている", "desc": "感情の起伏が小さく、気持ちにあまり左右されない"}, {"id": "O-H3", "name": "感情の豊かさ", "desc": "自分の気持ちに敏感で、感情を大切にする"}, {"id": "O-L4", "name": "慣れ親しんだもの", "desc": "慣れたものや、決まったやり方を好む"}, {"id": "O-H4", "name": "新しいもの好き", "desc": "新しいことや、いろいろな活動を試してみる"}, {"id": "O-L5", "name": "具体的思考", "desc": "理屈より、実際の事実を重視する"}, {"id": "O-H5", "name": "知的好奇心", "desc": "理論や考えることに興味を持ち、分析を好む"}, {"id": "O-L6", "name": "決まりに従う", "desc": "社会の決まりや、昔からの価値観を大切にする"}, {"id": "O-H6", "name": "決まりにとらわれない", "desc": "社会の決まりや価値観にとらわれず、偏見を持たない"}]};
+/* 価値観カード：採点の仕組み（体験版・本編で共通）
+   1枚の回答は 1〜6。下位特性の位置 = 高い側の点 − 低い側の点（−5〜+5）。
+   特性の位置 = 6つの下位特性の位置の平均。平均と比べず、本人の中での傾向として返す。 */
+const Core = (() => {
+  const LIKERT = [
+    { v: 1, label: "まったく当てはまらない" },
+    { v: 2, label: "当てはまらない" },
+    { v: 3, label: "あまり当てはまらない" },
+    { v: 4, label: "やや当てはまる" },
+    { v: 5, label: "当てはまる" },
+    { v: 6, label: "とても当てはまる" },
+  ];
+
+  function prepare(data) {
+    const byId = {};
+    data.cards.forEach((c) => {
+      const [t, s] = c.id.split("-");
+      c.trait = t;
+      c.side = s[0];          // "H" | "L"
+      c.n = Number(s.slice(1)); // 1..6
+      byId[c.id] = c;
+    });
+    const traitByKey = {};
+    data.traits.forEach((t) => (traitByKey[t.key] = t));
+    return { traits: data.traits, cards: data.cards, byId, traitByKey };
+  }
+
+  function facet(ans, t, n) {
+    const h = ans[`${t}-H${n}`], l = ans[`${t}-L${n}`];
+    if (h == null || l == null) return null;
+    let flag = null;
+    if (h >= 5 && l >= 5) flag = "both";      // どちらも当てはまる
+    else if (h <= 2 && l <= 2) flag = "neither"; // どちらも当てはまらない
+    return { t, n, h, l, f: h - l, flag };
+  }
+
+  function trait(ans, t) {
+    const fs = [];
+    for (let n = 1; n <= 6; n++) {
+      const x = facet(ans, t, n);
+      if (x) fs.push(x);
+    }
+    if (fs.length < 6) return { t, facets: fs, mean: null };
+    const mean = fs.reduce((s, x) => s + x.f, 0) / 6;
+    return { t, facets: fs, mean: Math.round(mean * 100) / 100 };
+  }
+
+  function lean(v) {
+    if (v == null) return "";
+    if (v >= 2.5) return "高い側に寄っている";
+    if (v >= 1) return "やや高い側";
+    if (v > -1) return "どちらにも寄っていない";
+    if (v > -2.5) return "やや低い側";
+    return "低い側に寄っている";
+  }
+
+  // あなたの中で目立つ下位特性：|高−低| が大きい順に最大3つ（差が2以上のもの）
+  function standouts(ans, traits, limit = 3) {
+    const all = [];
+    traits.forEach((tr) => {
+      for (let n = 1; n <= 6; n++) {
+        const x = facet(ans, tr.key, n);
+        if (x && Math.abs(x.f) >= 2) all.push(x);
+      }
+    });
+    all.sort((a, b) => Math.abs(b.f) - Math.abs(a.f));
+    return all.slice(0, limit);
+  }
+
+  // ワンランク上の一枚：選んだ特性・方向の6枚のうち、
+  // 点がいちばん高いのに、まだ「当てはまる」(5) に届いていないカード
+  function oneUp(ans, cards, t, side) {
+    const pool = cards.filter((c) => c.trait === t && c.side === side && ans[c.id] != null);
+    const below = pool.filter((c) => ans[c.id] < 5);
+    if (!below.length) return { card: null, allDone: pool.length > 0 };
+    let best = below[0];
+    below.forEach((c) => {
+      if (ans[c.id] > ans[best.id]) best = c;
+    });
+    return { card: best, score: ans[best.id], allDone: false };
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    const rnd = (k) => {
+      if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+        const u = new Uint32Array(1);
+        crypto.getRandomValues(u);
+        return u[0] % k;
+      }
+      return Math.floor(Math.random() * k);
+    };
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = rnd(i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  return { LIKERT, prepare, facet, trait, lean, standouts, oneUp, shuffle };
+})();
+
+
+const D = Core.prepare(DATA);
+const KEY = "kachikan.v1";
+const IS_TRIAL = CONFIG.mode === "trial";
+const app = document.getElementById("app");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const tname = (k) => D.traitByKey[k].name;
+const fname = (k, n) => D.traitByKey[k].facets[n - 1];
+
+/* ---------- 保存（同じ端末の体験版と本編で共有） ---------- */
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+}
+let S = Object.assign({ answers: {}, queue: [], pos: 0, trialTrait: null, oneUp: null }, load());
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+function resetAll() {
+  S = { answers: {}, queue: [], pos: 0, trialTrait: null, oneUp: null };
+  save();
+}
+
+/* ---------- 出題の範囲 ---------- */
+function scopeIds() {
+  if (IS_TRIAL) return D.cards.filter((c) => c.trait === S.trialTrait).map((c) => c.id);
+  return D.cards.map((c) => c.id);
+}
+function answeredCount() { return scopeIds().filter((id) => S.answers[id] != null).length; }
+function done() { return answeredCount() === scopeIds().length; }
+function startQueue() {
+  const rest = scopeIds().filter((id) => S.answers[id] == null);
+  S.queue = Core.shuffle(rest);
+  S.pos = 0;
+  save();
+}
+
+/* ---------- 画面：はじめに ---------- */
+function viewIntro() {
+  const n = answeredCount(), total = IS_TRIAL ? 12 : 60;
+  let resume = "";
+  if (!IS_TRIAL && n > 0 && n < 60) {
+    resume = `<div class="resume"><h3>前回の回答が残っています</h3>
+      <p class="small">この端末に${n}枚分の回答があります（体験版の回答も含みます）。残りの${60 - n}枚に答えると、結果が出ます。</p>
+      <div class="row"><button class="btn" id="go">続きから答える</button><button class="textbtn" id="reset">回答を消して最初から</button></div></div>`;
+  } else if (!IS_TRIAL && n === 60) {
+    resume = `<div class="resume"><h3>60枚すべてに答えています</h3>
+      <div class="row"><button class="btn" id="result">結果を見る</button><button class="textbtn" id="reset">回答を消して最初から</button></div></div>`;
+  } else if (IS_TRIAL && S.trialTrait && done()) {
+    resume = `<div class="resume"><h3>${esc(tname(S.trialTrait))}の12枚に答えています</h3>
+      <div class="row"><button class="btn" id="result">結果を見る</button><button class="textbtn" id="reset">回答を消して最初から</button></div></div>`;
+  }
+
+  const picker = IS_TRIAL ? `
+    <section class="sec">
+      <h2>気になる特性を、ひとつ選んでください</h2>
+      <div class="picker">${D.traits.map((t) => `<button class="pick t${t.key}" data-t="${t.key}"><span class="nm">${esc(t.name)}</span><span class="sub">${t.facets.map(esc).join("・")}</span></button>`).join("")}</div>
+      <p class="small muted">選んだ特性の12枚が、順番を混ぜて1枚ずつ出てきます。</p>
+    </section>` : (n === 0 ? `<div class="row"><button class="btn" id="go">はじめる</button></div>` : "");
+
+  app.innerHTML = `
+    <header class="hero">
+      <p class="eyebrow">${IS_TRIAL ? "体験版" : "本編"}　桜梅桃李コンサルティング</p>
+      <h1>${IS_TRIAL ? "価値観カード 体験版" : "価値観カード"}</h1>
+      <p class="lead">${IS_TRIAL
+        ? "ビッグファイブ（5因子モデル）をもとにした60枚のカードのうち、ひとつの特性の12枚に答えて、あなたの中の傾向を見てみましょう。"
+        : "ビッグファイブ（5因子モデル）をもとにした60枚のカードに答えて、あなたの中で目立つ傾向と、これから伸ばしたい「ワンランク上の一枚」を見つけます。"}</p>
+      <div class="facts"><span>カード <b>${total}</b> 枚</span><span>所要 約<b>${IS_TRIAL ? 2 : 8}</b>分</span><span>登録 <b>不要</b></span></div>
+    </header>
+    ${resume}
+    <section class="detail">
+      <h3>答え方</h3>
+      <ol class="steps">
+        <li>カードが1枚ずつ、順番を混ぜて出てきます。</li>
+        <li>ふだんの自分にどのくらい当てはまるかを、6段階から選びます。深く考えず、最初に浮かんだ感覚で答えてください。</li>
+        <li>${IS_TRIAL ? "答え終わると、その特性の中での傾向が見られます。" : "答え終わると、5つの特性と30の下位特性の傾向、そして「ワンランク上の一枚」が見られます。"}</li>
+      </ol>
+    </section>
+    ${picker}
+    <p class="note">診断ではありません。オリジナルのカードで、学術的に検証された尺度ではありません。平均とは比べず、あなたの中で目立つ傾向を返します。どちらの側も、良し悪しではありません。</p>
+    ${footer()}`;
+
+  const go = document.getElementById("go");
+  if (go) go.onclick = () => { if (!S.queue.length || S.pos >= S.queue.length) startQueue(); viewQuestion(); };
+  const r = document.getElementById("result");
+  if (r) r.onclick = viewResult;
+  const rs = document.getElementById("reset");
+  if (rs) rs.onclick = () => { resetAll(); viewIntro(); };
+  app.querySelectorAll(".pick").forEach((b) => (b.onclick = () => {
+    if (S.trialTrait !== b.dataset.t) { S.trialTrait = b.dataset.t; S.queue = []; }
+    if (done()) { save(); viewResult(); return; }
+    startQueue(); viewQuestion();
+  }));
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 画面：カード ---------- */
+function viewQuestion() {
+  if (S.pos >= S.queue.length) { if (done()) return viewResult(); startQueue(); }
+  const id = S.queue[S.pos];
+  const c = D.byId[id];
+  const total = scopeIds().length;
+  const doneN = answeredCount();
+  const cur = S.answers[id];
+  app.innerHTML = `
+    <div class="progress"><span>${Math.min(doneN + 1, total)} / ${total}</span><div class="bar"><i style="width:${(doneN / total) * 100}%"></i></div></div>
+    <article class="qcard" aria-label="カード">
+      <div class="nm">${esc(c.name)}</div>
+      <div class="ds">${esc(c.desc)}</div>
+    </article>
+    <p class="ask">ふだんの自分に、どのくらい当てはまりますか？</p>
+    <div class="likert" role="group" aria-label="当てはまる度合い">
+      ${Core.LIKERT.slice().reverse().map((o) => `<button class="lk" data-v="${o.v}" aria-pressed="${cur === o.v}"><span class="dot"></span>${o.label}</button>`).join("")}
+    </div>
+    <div class="qnav">
+      <button class="textbtn" id="back" ${S.pos === 0 ? "hidden" : ""}>ひとつ前に戻る</button>
+      <button class="textbtn" id="quit">中断する（回答は保存されます）</button>
+    </div>`;
+  app.querySelectorAll(".lk").forEach((b) => (b.onclick = () => {
+    S.answers[id] = Number(b.dataset.v);
+    app.querySelectorAll(".lk").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    S.pos += 1;
+    save();
+    setTimeout(() => (S.pos >= S.queue.length && done() ? viewResult() : viewQuestion()), 180);
+  }));
+  document.getElementById("back").onclick = () => {
+    S.pos = Math.max(0, S.pos - 1);
+    delete S.answers[S.queue[S.pos]];
+    save();
+    viewQuestion();
+  };
+  document.getElementById("quit").onclick = viewIntro;
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 結果の部品 ---------- */
+function axisHTML(t) {
+  const r = Core.trait(S.answers, t);
+  const pct = ((r.mean + 5) / 10) * 100;
+  return `<div class="axis t${t}">
+    <div class="top"><span class="tn">${esc(tname(t))}</span><span class="ln">${Core.lean(r.mean)}</span></div>
+    <div class="track" role="img" aria-label="${esc(tname(t))}：${Core.lean(r.mean)}"><i style="left:${pct}%"></i></div>
+    <div class="ends"><span>低い側</span><span>高い側</span></div>
+  </div>`;
+}
+function facetsHTML(t) {
+  const r = Core.trait(S.answers, t);
+  return `<div class="facets t${t}">${r.facets.map((x) => {
+    const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
+    const w = (Math.abs(x.f) / 5) * 50;
+    const left = x.f >= 0 ? 50 : 50 - w;
+    const flag = x.flag === "both"
+      ? `<div class="flagtx">どちらも「当てはまる」と答えています。場面によって使い分けているのかもしれません。</div>`
+      : x.flag === "neither" ? `<div class="flagtx">どちらも「当てはまらない」と答えています。この下位特性は、あなたにはあまり関係が薄いのかもしれません。</div>` : "";
+    return `<div class="fr">
+      <div class="fn">${esc(fname(t, x.n))}</div>
+      <div class="cd lo"><b>${esc(lo.name)}</b> <span class="sc">${x.l}</span></div>
+      <div class="cd hi"><span class="sc">${x.h}</span> <b>${esc(hi.name)}</b></div>
+      <div class="dbar" role="img" aria-label="${esc(fname(t, x.n))}：高い側${x.h}、低い側${x.l}"><i style="left:${left}%;width:${w}%"></i></div>
+      ${flag}
+    </div>`;
+  }).join("")}</div>`;
+}
+function standHTML(list) {
+  if (!list.length) return `<p class="small muted">どの下位特性も、高い側と低い側の差が小さめでした。どちらかに大きく寄らず、場面に合わせて動けるのかもしれません。</p>`;
+  return `<div class="stand">${list.map((x) => {
+    const side = x.f > 0 ? "H" : "L";
+    const c = D.byId[`${x.t}-${side}${x.n}`];
+    return `<div class="st t${x.t}"><span class="nm">${esc(c.name)}</span><span class="sub">${esc(tname(x.t))}・${esc(fname(x.t, x.n))}（${side === "H" ? "高い側" : "低い側"}）　${esc(c.desc)}</span></div>`;
+  }).join("")}</div>`;
+}
+function summaryText() {
+  const lines = [IS_TRIAL ? "価値観カード 体験版の結果" : "価値観カードの結果", ""];
+  const ts = IS_TRIAL ? [S.trialTrait] : D.traits.map((t) => t.key);
+  ts.forEach((t) => {
+    const r = Core.trait(S.answers, t);
+    lines.push(`■${tname(t)}：${Core.lean(r.mean)}`);
+    r.facets.forEach((x) => lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}`));
+  });
+  if (!IS_TRIAL && S.oneUp && S.oneUp.cardId) lines.push("", `ワンランク上の一枚：${D.byId[S.oneUp.cardId].name}`);
+  return lines.join("\n");
+}
+function copyBtn() {
+  return `<div class="row"><button class="btn ghost" id="copy">結果を文字でコピー</button><span class="copied" id="copied" hidden>コピーしました</span></div>`;
+}
+function bindCopy() {
+  const b = document.getElementById("copy");
+  if (!b) return;
+  b.onclick = () => {
+    const t = summaryText();
+    const ok = () => (document.getElementById("copied").hidden = false);
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); ok(); } catch (e) {}
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fallback);
+    else fallback();
+  };
+}
+
+/* ---------- 画面：結果 ---------- */
+function viewResult() {
+  if (IS_TRIAL) return viewTrialResult();
+  const ts = D.traits.map((t) => t.key);
+  const stands = Core.standouts(S.answers, D.traits, 3);
+  const both = [];
+  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => x.flag === "both" && both.push(x)));
+
+  app.innerHTML = `
+    <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
+      <p class="small muted">点は、各下位特性の「高い側の点 − 低い側の点」の平均です。平均的な人との比較ではありません。</p></header>
+    <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
+    <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
+      <p class="small muted">高い側と低い側の差が大きかったものを、最大3つ挙げています。</p>${standHTML(stands)}</section>
+    ${both.length ? `<section class="callout"><h3>場面で使い分けているかもしれないもの</h3>
+      <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
+      <p class="small muted">反対の2枚にどちらも「当てはまる」と答えたものです。人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
+    <section class="sec"><h2>30の下位特性</h2>
+      ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
+    </section>
+    <section class="sec" id="oneup"></section>
+    ${copyBtn()}
+    <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
+    ${footer()}`;
+  bindCopy();
+  document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
+  renderOneUp();
+  window.scrollTo(0, 0);
+}
+
+function renderOneUp() {
+  const box = document.getElementById("oneup");
+  const sel = S.oneUp || {};
+  const traitBtns = D.traits.map((t) => `<button class="pick t${t.key}" data-t="${t.key}" aria-pressed="${sel.t === t.key}"><span class="nm">${esc(t.name)}</span></button>`).join("");
+  let dirs = "", card = "";
+  if (sel.t) {
+    const sides = sel.t === "N" ? ["L"] : ["H", "L"];
+    dirs = `<p class="small">どちらの方向に伸ばしたいですか？</p><div class="dirs">${sides.map((s) => {
+      const names = D.cards.filter((c) => c.trait === sel.t && c.side === s).slice(0, 3).map((c) => c.name).join("・");
+      return `<button class="pick t${sel.t}" data-s="${s}" aria-pressed="${sel.side === s}"><span class="nm">${s === "H" ? "高い側へ" : "低い側へ"}</span><span class="sub">${esc(names)} など</span></button>`;
+    }).join("")}</div>${sel.t === "N" ? `<p class="small muted">否定的情動性は、気持ちが揺れにくい側（低い側）への一枚だけを出しています。</p>` : ""}`;
+  }
+  if (sel.t && sel.side) {
+    const r = Core.oneUp(S.answers, D.cards, sel.t, sel.side);
+    if (r.card) {
+      S.oneUp = { t: sel.t, side: sel.side, cardId: r.card.id }; save();
+      card = `<div class="onecard t${sel.t}">
+        <span class="lb">ワンランク上の一枚</span>
+        <span class="nm">${esc(r.card.name)}</span>
+        <p>${esc(r.card.desc)}</p>
+        <p class="small muted">今のあなたの答え：「${Core.LIKERT[r.score - 1].label}」。この方向の6枚のうち、いちばん近いのに、まだ「当てはまる」に届いていないカードです。</p>
+      </div>
+      <div class="callout"><h3>この一枚を、今週ためしてみる</h3>
+        <ol class="qs">
+          <li>この一枚が出ている自分は、どんな場面で、何をしていそうですか。</li>
+          <li>今週、その場面に近いことが起きそうなのは、いつ・どこですか。</li>
+          <li>そこで、いつもより少しだけ違うことをするなら、何をしますか。小さく、できそうなことにしてください。</li>
+        </ol>
+        <p class="small muted">できなかった週があっても大丈夫です。できなかった理由に気づくことも、次の一歩の材料になります。</p>
+      </div>`;
+    } else {
+      S.oneUp = { t: sel.t, side: sel.side, cardId: null }; save();
+      card = `<div class="callout"><h3>この方向は、もう十分に表れています</h3><p>この方向の6枚は、すべて「当てはまる」以上でした。別の特性か方向を選んでみてください。</p></div>`;
+    }
+  }
+  box.innerHTML = `<h2>ワンランク上の一枚</h2>
+    <p class="small">これから伸ばしたい特性を、ひとつ選んでください。人は、自分で変えたいと望んだ特性ほど、少しずつ変わっていくことが分かっています（Hudson &amp; Fraley, 2015）。</p>
+    <div class="picker">${traitBtns}</div>${dirs}${card}
+    ${card ? `<div class="callout"><h3>ひとりで考えるのが難しければ</h3><p class="small">この一枚をどう生かすかは、コーチングのセッションで一緒に考えることもできます。</p><div class="row"><a class="btn" href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">問い合わせる</a></div></div>` : ""}`;
+  box.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { S.oneUp = { t: b.dataset.t }; save(); renderOneUp(); }));
+  box.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => { S.oneUp = { t: sel.t, side: b.dataset.s }; save(); renderOneUp(); }));
+  bindCopy();
+}
+
+function viewTrialResult() {
+  const t = S.trialTrait;
+  const stands = Core.standouts(S.answers, [D.traitByKey[t]], 2);
+  app.innerHTML = `
+    <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
+      <p class="small muted">点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。平均的な人との比較ではありません。</p></header>
+    ${axisHTML(t)}
+    <section class="sec"><h2>6つの下位特性</h2>${facetsHTML(t)}</section>
+    <section class="sec"><h2>この特性の中で目立つもの</h2>${standHTML(stands)}</section>
+    ${copyBtn()}
+    <section class="resume">
+      <h3>本編では、ここから先ができます</h3>
+      <ul class="steps">
+        <li>60枚すべてで、5つの特性と30の下位特性の傾向を見る</li>
+        <li>反対の2枚にどちらも当てはまる「場面での使い分け」に気づく</li>
+        <li>これから伸ばしたい方向の「ワンランク上の一枚」と、今週ためす問いを受け取る</li>
+      </ul>
+      <p class="small">体験版の12枚の回答は、この端末に保存されています。同じ端末で本編を開けば、残りの48枚に答えるだけで済みます。</p>
+      <div class="row"><a class="btn" href="${esc(CONFIG.articleUrl)}" target="_blank" rel="noopener">本編の案内を読む（note）</a></div>
+    </section>
+    <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
+    ${footer()}`;
+  bindCopy();
+  document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
+  window.scrollTo(0, 0);
+}
+
+function footer() {
+  return `<footer class="foot">
+    <p>カードは、ビッグファイブ（5因子モデル）の30の下位特性をもとにしたオリジナルです。下位特性の名前と区分は、下仲順子・中里克治・権藤恭之・高山緑（1998）「日本版NEO-PI-Rの作成とその因子的妥当性の検討」『性格心理学研究』6(2), 138-147 を参考にしています。カードの説明文は同論文の付録をもとに作成したもので、原文ではありません。</p>
+    <p>回答はこの端末の中にだけ保存され、どこにも送信されません。</p>
+    <p>©2026 桜梅桃李コンサルティング</p>
+  </footer>`;
+}
+
+/* ---------- 開始 ---------- */
+if (!IS_TRIAL && answeredCount() === 60) viewResult();
+else viewIntro();
+</script>
+</body>
+</html>
