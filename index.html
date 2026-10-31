@@ -240,7 +240,7 @@ const Core = (() => {
 
   function lean(v, split) {
     if (v == null) return "";
-    if (split) return "下位特性によって分かれている";
+    if (split) return "組によって分かれている";
     if (v >= 2.5) return "高い側に寄っている";
     if (v >= 1) return "やや高い側";
     if (v > -1) return "どちらにも寄っていない";
@@ -387,7 +387,7 @@ function viewIntro() {
       <ol class="steps">
         <li>カードが1枚ずつ、順番を混ぜて出てきます。</li>
         <li>ふだんの自分にどのくらい当てはまるかを、6段階から選びます。深く考えず、最初に浮かんだ感覚で答えてください。</li>
-        <li>${IS_TRIAL ? "答え終わると、その特性の中での傾向が見られます。" : "答え終わると、5つの特性と30の下位特性の傾向、そして「ワンランク上の一枚」が見られます。"}</li>
+        <li>${IS_TRIAL ? "答え終わると、その特性の中での傾向が見られます。" : "答え終わると、5つの特性と30組のカードの傾向、そして「ワンランク上の一枚」が見られます。"}</li>
       </ol>
     </section>
     ${picker}
@@ -509,7 +509,7 @@ function facetsHTML(t, pdf = false) {
   return `<div class="facets t${t}"><div class="axhd"><span></span><span><span>← 低い側</span><span>高い側 →</span></span></div>${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
-      ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。</div>`
+      ? `<div class="flagtx">概ね反対の意味に相当する一対のカードの、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。</div>`
       : x.type === "mismatch" ? (pdf ? whyStatic(x) : whyHTML(x)) : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
@@ -523,30 +523,30 @@ function countsHTML(t) {
   const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "center").length, m = fs.filter((x) => x.type === "mismatch").length;
   if (!b && !n && !m) return "";
   const parts = [];
-  if (b) parts.push(`両方の顔がある ${b}つ`);
-  if (n) parts.push(`どちらでもない（真ん中） ${n}つ`);
-  if (m) parts.push(`どちらの言葉も合わない ${m}つ`);
+  if (b) parts.push(`「両方の顔がある」と判定されたものが${b}つ`);
+  if (n) parts.push(`「どちらでもない（真ん中）」と判定されたものが${n}つ`);
+  if (m) parts.push(`「どちらの言葉も合わない」と判定されたものが${m}つ`);
   // 答え方のくせは、1組では判断しない。同じ特性の中で3組以上そろったときだけ触れる
   const habit = b >= 3
-    ? `<div class="counts habit">反対の2枚のどちらにも当てはまると答えた組が、6つのうち${b}つあります。場面で使い分けている面もあるかもしれませんが、何にでも「当てはまる」と答えやすいくせが出ている可能性もあります。</div>`
+    ? `<div class="counts habit">概ね反対の意味に相当する一対のカードの、どちらにも当てはまると答えた組が、6組のうち${b}組あります。場面で使い分けている面もあるかもしれませんが、何にでも「当てはまる」と答えやすいくせが出ている可能性もあります。</div>`
     : m >= 3
-    ? `<div class="counts habit">反対の2枚のどちらにも当てはまらないと答えた組が、6つのうち${m}つあります。言葉が合わなかった面もあるかもしれませんが、何にでも「当てはまらない」と答えやすいくせが出ている可能性もあります。</div>`
+    ? `<div class="counts habit">概ね反対の意味に相当する一対のカードの、どちらにも当てはまらないと答えた組が、6組のうち${m}組あります。言葉が合わなかった面もあるかもしれませんが、何にでも「当てはまらない」と答えやすいくせが出ている可能性もあります。</div>`
     : "";
-  return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>${habit}`;
+  return `<div class="counts">6組のうち、${parts.join("、")}。この点は上の位置には表れないので、各組の結果も見てください。</div>${habit}`;
 }
 const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
 function standHTML(list) {
-  if (!list.length) return `<p class="small muted">大きく寄っているものも、反対の2枚の答えが食い違うものもありませんでした。全体に、どちらかの端へ大きく振れずに答えています。</p>`;
+  if (!list.length) return `<p class="small muted">大きく寄っているものも、一対のカードの答えが食い違うものもありませんでした。全体に、どちらかの端へ大きく振れずに答えています。</p>`;
   return `<div class="stand">${list.map((x) => {
     const lo = D.byId[`${x.t}-L${x.n}`], hi = D.byId[`${x.t}-H${x.n}`];
     const head = x.contra ? `${esc(hi.name)}／${esc(lo.name)}` : esc((x.f > 0 ? hi : lo).name);
     const sub = x.contra
-      ? `${x.type === "both" ? "反対の2枚の、どちらにも当てはまる" : "反対の2枚の、どちらにも当てはまらない"}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`
+      ? `${x.type === "both" ? "一対のカードの、どちらにも当てはまる" : "一対のカードの、どちらにも当てはまらない"}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`
       : `${(x.f > 0 ? hi : lo).desc}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`;
     return `<div class="st t${x.t}"><span class="sub">${esc(tname(x.t))}・${esc(fname(x.t, x.n))}　<b>${STAND_TAG[x.type]}</b></span><span class="nm">${head}</span><span class="sub">${esc(sub)}</span></div>`;
   }).join("")}</div>`;
 }
-const STAND_NOTE = "大きく寄っているものと、反対の2枚の答えが食い違うもの（両方の顔がある／どちらの言葉も合わない）の中から、度合いの強い順に挙げています。";
+const STAND_NOTE = "大きく寄っているものと、一対のカードの答えが食い違うもの（両方の顔がある／どちらの言葉も合わない）の中から、度合いの強い順に挙げています。";
 /* ---------- PDF ---------- */
 function pdfBtn() {
   return `<div class="row"><button class="btn ghost" id="dl">結果をPDFで受け取る</button><span class="small muted" id="dlStatus" aria-live="polite"></span></div>`;
@@ -559,18 +559,18 @@ function reportBlocks() {
     B.push(`<div><span class="eb">VALUE CARDS / TRIAL</span><h1>価値観カード 体験版<br>${esc(tname(t))}の結果</h1><p class="mu">${date}　外向性の12枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
     B.push(axisHTML(t));
     B.push(`<section class="sec"><h2>この特性の中で目立つもの</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, [D.traitByKey[t]], 3))}</section>`);
-    B.push(`<section class="sec"><h2>6つの下位特性</h2>${facetsHTML(t, true)}</section>`);
-    B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてで5つの特性と30の下位特性を見て、これから伸ばしたい「ワンランク上の一枚」を受け取れます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
+    B.push(`<section class="sec"><h2>6組のカード</h2>${facetsHTML(t, true)}</section>`);
+    B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてで5つの特性と30組のカードを見て、これから伸ばしたい「ワンランク上の一枚」を受け取れます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
   } else {
     const ts = D.traits.map((x) => x.key);
     B.push(`<div><span class="eb">VALUE CARDS</span><h1>価値観カード<br>あなたの中の傾向</h1><p class="mu">${date}　60枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
     ts.forEach((t) => B.push(axisHTML(t)));
-    B.push(`<section class="sec"><h2>あなたの中で目立つ下位特性</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, D.traits, 5))}</section>`);
+    B.push(`<section class="sec"><h2>あなたの中で目立つ組</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, D.traits, 5))}</section>`);
     if (S.oneUp && S.oneUp.cardId) {
       const c = D.byId[S.oneUp.cardId];
       B.push(`<div class="onecard t${c.trait}"><span class="lb">ワンランク上の一枚</span><span class="nm">${esc(c.name)}</span><p>${esc(c.desc)}</p><p class="small mu">${esc(tname(c.trait))}・${esc(fname(c.trait, c.n))}（${c.side === "H" ? "高い側" : "低い側"}）　今の答え：${S.answers[c.id]}点</p></div>`);
     }
-    ts.forEach((t) => B.push(`<section class="sec"><h2>${esc(tname(t))}の6つの下位特性</h2>${facetsHTML(t, true)}</section>`));
+    ts.forEach((t) => B.push(`<section class="sec"><h2>${esc(tname(t))}の6組のカード</h2>${facetsHTML(t, true)}</section>`));
   }
   return B;
 }
@@ -632,17 +632,17 @@ function viewResult() {
 
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
-      <p class="small muted">大きな点は、各下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
+      <p class="small muted">大きな点は、各組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。平均的な人との比較ではありません。</p></header>
     <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
-    <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
+    <section class="sec"><h2>あなたの中で目立つ組</h2>
       <p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
     ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
       <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
     ${mism.length ? `<section class="callout"><h3>どちらの言葉も合わなかったもの</h3>
       <p>${mism.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">反対の2枚を、どちらも強く「当てはまらない」と答えたものです。理由はいくつか考えられるので、下の30の下位特性の中で、自分に近い理由を選んでみてください。</p></section>` : ""}
-    <section class="sec"><h2>30の下位特性</h2>
+      <p class="small muted">一対のカードを、どちらも強く「当てはまらない」と答えたものです。理由はいくつか考えられるので、下の30組の中で、自分に近い理由を選んでみてください。</p></section>` : ""}
+    <section class="sec"><h2>30組のカード</h2>
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
     </section>
     <section class="sec" id="oneup"></section>
@@ -705,17 +705,17 @@ function viewTrialResult() {
   const stands = Core.standouts(S.answers, [D.traitByKey[t]], 3);
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
-      <p class="small muted">大きな点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
+      <p class="small muted">大きな点は、6組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。平均的な人との比較ではありません。</p></header>
     ${axisHTML(t)}
-    <section class="sec"><h2>6つの下位特性</h2>
+    <section class="sec"><h2>6組のカード</h2>
 ${facetsHTML(t)}</section>
     <section class="sec"><h2>この特性の中で目立つもの</h2><p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
     ${pdfBtn()}
     <section class="resume">
       <h3>本編では、ここから先ができます</h3>
       <ul class="steps">
-        <li>60枚すべてで、5つの特性と30の下位特性の傾向を見る</li>
-        <li>30の下位特性すべてで、「両方の顔」「真ん中」「どちらの言葉も合わない」を見分ける</li>
+        <li>60枚すべてで、5つの特性と30組のカードの傾向を見る</li>
+        <li>30組すべてで、「両方の顔」「真ん中」「どちらの言葉も合わない」を見分ける</li>
         <li>これから伸ばしたい方向の「ワンランク上の一枚」と、今週ためす問いを受け取る</li>
       </ul>
       <p class="small">体験版の12枚の回答は、この端末に保存されています。同じ端末で本編を開けば、残りの48枚に答えるだけで済みます。</p>
