@@ -89,10 +89,11 @@ button{font:inherit;cursor:pointer;color:inherit}
 .axis .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .axis .tn{font-family:var(--display);font-weight:800;font-size:19px;color:var(--tc)}
 .axis .ln{font-size:14px;font-weight:700}
-.track{position:relative;height:22px}
-.track::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line)}
-.track::after{content:"";position:absolute;left:50%;top:4px;width:2px;height:14px;background:var(--muted);transform:translateX(-1px)}
-.track i{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:var(--tc);border:2px solid var(--surface);transform:translateX(-8px);z-index:1}
+.track{position:relative;height:var(--th,22px)}
+.track::before{content:"";position:absolute;left:0;right:0;bottom:10px;height:2px;background:var(--line)}
+.track::after{content:"";position:absolute;left:50%;bottom:4px;width:2px;height:14px;background:var(--muted);transform:translateX(-1px)}
+.track i{position:absolute;bottom:3px;width:16px;height:16px;border-radius:50%;background:var(--tc);border:2px solid var(--surface);transform:translateX(-8px);z-index:2}
+.track b{position:absolute;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--tc);background:var(--surface);transform:translateX(-4.5px);z-index:1}
 .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
 .facets{display:flex;flex-direction:column;gap:10px}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
@@ -212,11 +213,15 @@ const Core = (() => {
     }
     if (fs.length < 6) return { t, facets: fs, mean: null };
     const mean = fs.reduce((s, x) => s + x.f, 0) / 6;
-    return { t, facets: fs, mean: Math.round(mean * 100) / 100 };
+    // 6つの下位特性の位置のばらつき（標準偏差）。平均だけでは、両端に分かれた場合も真ん中に見えるため
+    const sd = Math.sqrt(fs.reduce((s2, x) => s2 + (x.f - mean) ** 2, 0) / 6);
+    const split = sd >= 2.5 && Math.abs(mean) < 2.5;
+    return { t, facets: fs, mean: Math.round(mean * 100) / 100, sd: Math.round(sd * 100) / 100, split };
   }
 
-  function lean(v) {
+  function lean(v, split) {
     if (v == null) return "";
+    if (split) return "下位特性によって分かれている";
     if (v >= 2.5) return "高い側に寄っている";
     if (v >= 1) return "やや高い側";
     if (v > -1) return "どちらにも寄っていない";
@@ -420,10 +425,18 @@ function viewQuestion() {
 /* ---------- 結果の部品 ---------- */
 function axisHTML(t) {
   const r = Core.trait(S.answers, t);
-  const pct = ((r.mean + 5) / 10) * 100;
+  const pos = (v) => ((v + 5) / 10) * 100;
+  const label = Core.lean(r.mean, r.split);
+  // 6つの下位特性の位置を小さな点で。重なる点は上に積む
+  const stack = {};
+  const dots = r.facets.map((x) => {
+    const k = stack[x.f] = (stack[x.f] || 0) + 1;
+    return `<b style="left:${pos(x.f)}%;bottom:${17 + (k - 1) * 10}px" title="${esc(fname(t, x.n))}"></b>`;
+  }).join("");
+  const maxStack = Math.max(...Object.values(stack));
   return `<div class="axis t${t}">
-    <div class="top"><span class="tn">${esc(tname(t))}</span><span class="ln">${Core.lean(r.mean)}</span></div>
-    <div class="track" role="img" aria-label="${esc(tname(t))}：${Core.lean(r.mean)}"><i style="left:${pct}%"></i></div>
+    <div class="top"><span class="tn">${esc(tname(t))}</span><span class="ln">${label}</span></div>
+    <div class="track" style="--th:${22 + maxStack * 10}px" role="img" aria-label="${esc(tname(t))}：${label}">${dots}<i style="left:${pos(r.mean)}%"></i></div>
     <div class="ends"><span>低い側</span><span>高い側</span></div>
     ${countsHTML(t)}
   </div>`;
@@ -509,7 +522,7 @@ function summaryText() {
   const ts = IS_TRIAL ? [CONFIG.trialTrait] : D.traits.map((t) => t.key);
   ts.forEach((t) => {
     const r = Core.trait(S.answers, t);
-    lines.push(`■${tname(t)}：${Core.lean(r.mean)}`);
+    lines.push(`■${tname(t)}：${Core.lean(r.mean, r.split)}`);
     r.facets.forEach((x) => { const rs = REASONS.find((o) => o.k === S.reasons[`${t}${x.n}`]); lines.push(`　${fname(t, x.n)}　${D.byId[`${t}-L${x.n}`].name} ${x.l} ／ ${D.byId[`${t}-H${x.n}`].name} ${x.h}（${TYPE_LABEL[x.type]}${rs ? `：${rs.q}` : ""}）`); });
   });
   if (!IS_TRIAL && S.oneUp && S.oneUp.cardId) lines.push("", `ワンランク上の一枚：${D.byId[S.oneUp.cardId].name}`);
@@ -547,7 +560,7 @@ function viewResult() {
 
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
-      <p class="small muted">点は、各下位特性の「高い側の点 − 低い側の点」の平均です。平均的な人との比較ではありません。</p></header>
+      <p class="small muted">大きな点は、各下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
     <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
     <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
       <p class="small muted">高い側と低い側の差が大きかったものを、最大3つ挙げています。</p>${standHTML(stands)}</section>
@@ -621,7 +634,7 @@ function viewTrialResult() {
   const stands = Core.standouts(S.answers, [D.traitByKey[t]], 2);
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
-      <p class="small muted">点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。平均的な人との比較ではありません。</p></header>
+      <p class="small muted">大きな点は、6つの下位特性の「高い側の点 − 低い側の点」の平均です。小さな点は、6つの下位特性それぞれの位置です。平均的な人との比較ではありません。</p></header>
     ${axisHTML(t)}
     ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
     <section class="sec"><h2>6つの下位特性</h2>
