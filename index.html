@@ -115,13 +115,19 @@ button{font:inherit;cursor:pointer;color:inherit}
 .why .opt[aria-pressed="true"]{border-color:var(--accent)}
 .why .ans{font-size:14px}
 .why .ans a{color:var(--accent);font-weight:700}
-.bfly{grid-column:1/-1;display:grid;grid-template-columns:1fr 2px 1fr;align-items:center;height:12px}
-.bfly .half{height:12px;background:var(--bg);position:relative}
-.bfly .half.l{border-radius:6px 0 0 6px}.bfly .half.r{border-radius:0 6px 6px 0}
-.bfly .half i{position:absolute;top:0;height:12px;background:var(--tc)}
-.bfly .half.l i{right:0;opacity:.55;border-radius:6px 0 0 6px}
-.bfly .half.r i{left:0;border-radius:0 6px 6px 0}
-.bfly .mid{height:16px;background:var(--muted)}
+.lanes{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.lane{display:grid;grid-template-columns:7.2em 1fr;align-items:center;gap:8px}
+.lane .nm{font-size:13px;font-weight:700;line-height:1.35;min-width:0}
+.trk{position:relative;height:22px}
+.trk::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line);border-radius:1px}
+.trk::after{content:"";position:absolute;left:50%;top:2px;width:2px;height:18px;background:var(--muted);transform:translateX(-1px)}
+.trk .bar{position:absolute;top:8px;height:6px;background:var(--tc);border-radius:3px}
+.trk .bar.no{opacity:.4}
+.trk .pt{position:absolute;top:0;width:22px;height:22px;border-radius:50%;transform:translateX(-11px);display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;font-weight:500;background:var(--tc);color:var(--surface);border:2px solid var(--tc);z-index:1}
+.trk .pt.no{background:var(--surface);color:var(--tc)}
+.axhd{display:grid;grid-template-columns:7.2em 1fr;gap:8px;font-size:12px;color:var(--muted)}
+.axhd span:last-child{display:flex;justify-content:space-between}
 .flagtx{grid-column:1/-1;font-size:13px;color:var(--ink);background:var(--tint);border-radius:6px;padding:4px 10px}
 .counts{font-size:13px;color:var(--muted)}
 .style{font-size:14px}
@@ -449,18 +455,25 @@ function bindWhy(root) {
     bindWhy(document.getElementById(`why-${key}`).parentElement);
   }));
 }
+// 1本の目盛り：高い側のカードは左から1〜6、低い側のカードは逆向き（左から6〜1）。
+// 真ん中は「3と4の境目」。棒は真ん中から、答えた点の位置まで伸ばす。
+function laneHTML(name, v, reversed) {
+  const pos = ((reversed ? 6.5 - v : v - 0.5) / 6) * 100;
+  const left = Math.min(pos, 50), width = Math.abs(pos - 50);
+  const no = v <= 3 ? " no" : "";
+  return `<div class="lane"><span class="nm">${esc(name)}</span>
+    <div class="trk" role="img" aria-label="${esc(name)}：${v}点"><span class="bar${no}" style="left:${left}%;width:${width}%"></span><span class="pt${no}" style="left:${pos}%">${v}</span></div></div>`;
+}
 function facetsHTML(t) {
   const r = Core.trait(S.answers, t);
-  return `<div class="facets t${t}">${r.facets.map((x) => {
+  return `<div class="facets t${t}"><div class="axhd"><span></span><span><span>← 低い側</span><span>高い側 →</span></span></div>${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
       ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
       : x.type === "mismatch" ? whyHTML(x) : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
-      <div class="cd lo"><b>${esc(lo.name)}</b> <span class="sc">${x.l}</span></div>
-      <div class="cd hi"><span class="sc">${x.h}</span> <b>${esc(hi.name)}</b></div>
-      <div class="bfly" role="img" aria-label="${esc(fname(t, x.n))}：低い側${x.l}点、高い側${x.h}点"><span class="half l"><i style="width:${(x.l / 6) * 100}%"></i></span><span class="mid"></span><span class="half r"><i style="width:${(x.h / 6) * 100}%"></i></span></div>
+      <div class="lanes">${laneHTML(hi.name, x.h, false)}${laneHTML(lo.name, x.l, true)}</div>
       ${flag}
     </div>`;
   }).join("")}</div>`;
@@ -546,7 +559,6 @@ function viewResult() {
       <p>${mism.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
       <p class="small muted">反対の2枚を、どちらも強く「当てはまらない」と答えたものです。理由はいくつか考えられるので、下の30の下位特性の中で、自分に近い理由を選んでみてください。</p></section>` : ""}
     <section class="sec"><h2>30の下位特性</h2>
-      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。</p>
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
     </section>
     <section class="sec" id="oneup"></section>
@@ -613,7 +625,7 @@ function viewTrialResult() {
     ${axisHTML(t)}
     ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
     <section class="sec"><h2>6つの下位特性</h2>
-      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。両方が長いとき（両方の顔がある）も、両方が短いとき（どちらの言葉も合わない）も、上の位置では真ん中に寄ります。</p>${facetsHTML(t)}</section>
+${facetsHTML(t)}</section>
     <section class="sec"><h2>この特性の中で目立つもの</h2>${standHTML(stands)}</section>
     ${copyBtn()}
     <section class="resume">
