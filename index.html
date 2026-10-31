@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="ビッグファイブをもとにした価値観カードのうち、ひとつの特性の12枚に答えて、自分の中の傾向を見られる無料の体験版です。">
+<meta name="description" content="ビッグファイブをもとにした価値観カードのうち、外向性の12枚に答えて、自分の中の傾向を見られる無料の体験版です。">
 <title>価値観カード 体験版</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -106,7 +106,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 .ty{font-size:12px;font-weight:700;border-radius:999px;padding:0 10px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
 .ty.high,.ty.low{color:var(--tc);border-color:var(--tc)}
 .ty.both{background:var(--tc);border-color:var(--tc);color:var(--surface)}
-.ty.neither{border-style:dashed}
+.ty.center{border-style:dashed}
 .bfly{grid-column:1/-1;display:grid;grid-template-columns:1fr 2px 1fr;align-items:center;height:12px}
 .bfly .half{height:12px;background:var(--bg);position:relative}
 .bfly .half.l{border-radius:6px 0 0 6px}.bfly .half.r{border-radius:0 6px 6px 0}
@@ -145,7 +145,7 @@ details.tr .body{padding-bottom:14px}
 <div class="wrap" id="app" aria-live="polite"></div>
 
 <script>
-const CONFIG = {"mode": "trial", "articleUrl": "https://note.com/s_reflection", "contactUrl": "https://note.com/s_reflection/message"};
+const CONFIG = {"mode": "trial", "trialTrait": "E", "articleUrl": "https://note.com/s_reflection", "contactUrl": "https://note.com/s_reflection/message"};
 const DATA = {"traits": [{"key": "E", "name": "外向性", "facets": ["温かさ", "群居性", "断行性", "活動性", "刺激希求性", "よい感情"]}, {"key": "A", "name": "協調性", "facets": ["信頼", "実直さ", "利他性", "応諾", "慎み深さ", "優しさ"]}, {"key": "C", "name": "誠実性", "facets": ["コンピテンス", "秩序", "良心性", "達成追求", "自己鍛練", "慎重さ"]}, {"key": "N", "name": "否定的情動性", "facets": ["不安", "敵意", "抑うつ", "自意識", "衝動性", "傷つきやすさ"]}, {"key": "O", "name": "開放性", "facets": ["空想", "審美性", "感情", "行為", "アイデア", "価値"]}], "cards": [{"id": "E-L1", "name": "人と距離を置く", "desc": "人とは一定の距離を保ち、改まった接し方をする"}, {"id": "E-H1", "name": "人なつっこさ", "desc": "人に親しみを込めて接し、気軽に話しかける"}, {"id": "E-L2", "name": "一人の時間", "desc": "人混みを避け、一人で過ごす時間を好む"}, {"id": "E-H2", "name": "人の輪が好き", "desc": "人が集まる場や、たくさんの友人との交流を好む"}, {"id": "E-L3", "name": "控えめ", "desc": "前に出ず、強く意見を言うのは控える"}, {"id": "E-H3", "name": "自己主張", "desc": "自信をもって意見を言い、場を引っぱる"}, {"id": "E-L4", "name": "マイペース", "desc": "あわてず、ゆっくり慎重に動く"}, {"id": "E-H4", "name": "活力", "desc": "エネルギッシュで、テンポよく動く"}, {"id": "E-L5", "name": "安全第一", "desc": "強すぎる刺激は避け、危ないことはしない"}, {"id": "E-H5", "name": "スリルを楽しむ", "desc": "強い刺激を求め、ときに危ないことにも挑む"}, {"id": "E-L6", "name": "まじめ", "desc": "はしゃぐことは少なく、まじめに過ごす"}, {"id": "E-H6", "name": "陽気さ", "desc": "元気で、うれしさや楽しさが表に出やすい"}, {"id": "A-L1", "name": "疑ってかかる", "desc": "人の言葉や意図を、まず疑って確かめる"}, {"id": "A-H1", "name": "信頼", "desc": "人の善意を信じる"}, {"id": "A-L2", "name": "人を操ろうとする", "desc": "相手を自分の望む方向へ動かそうと働きかける"}, {"id": "A-H2", "name": "裏表がない", "desc": "率直で誠実、駆け引きをしない"}, {"id": "A-L3", "name": "自分優先", "desc": "人の問題には深入りせず、自分のことを優先する"}, {"id": "A-H3", "name": "人のために動く", "desc": "人の役に立とうとして動く"}, {"id": "A-L4", "name": "負けん気", "desc": "競い合うことを好み、反発をためらわず表に出す"}, {"id": "A-H4", "name": "人に譲る", "desc": "争いを避けて人に譲り、人を許す"}, {"id": "A-L5", "name": "自負心", "desc": "自分は優れていると考え、それを表に出す"}, {"id": "A-H5", "name": "謙虚さ", "desc": "へりくだり、自分を誇らない"}, {"id": "A-L6", "name": "割り切り", "desc": "情に流されず、現実的な理屈で判断する"}, {"id": "A-H6", "name": "情に厚い", "desc": "人の困りごとに心を動かされ、同情する"}, {"id": "C-L1", "name": "自己評価が辛め", "desc": "自分の力や準備はまだ足りないと感じやすい"}, {"id": "C-H1", "name": "やれる手応え", "desc": "たいていの問題にはうまく対処できると思っている"}, {"id": "C-L2", "name": "段取りが大まか", "desc": "準備や段取りにはあまり手をかけない"}, {"id": "C-H2", "name": "秩序", "desc": "身の回りや物事をきちんと整え、準備しておく"}, {"id": "C-L3", "name": "義務感が薄い", "desc": "決まりや義務にあまり縛られず、物事をゆるやかに扱う"}, {"id": "C-H3", "name": "筋を通す", "desc": "決まりや倫理を守り、果たすべきことに忠実に従う"}, {"id": "C-L4", "name": "野心が薄い", "desc": "高い目標や野心はあまり持たない"}, {"id": "C-H4", "name": "目標達成", "desc": "高い目標を掲げ、達成に向けて努力する"}, {"id": "C-L5", "name": "見切りが早い", "desc": "気が乗らないと手が止まり、早めにやめたくなる"}, {"id": "C-H5", "name": "やり抜く", "desc": "飽きたり気が散ったりせず、最後までやり終える"}, {"id": "C-L6", "name": "即興性", "desc": "先のことを考えすぎず、思いついたら話したり動いたりする"}, {"id": "C-H6", "name": "熟慮", "desc": "行動する前によく考える"}, {"id": "N-L1", "name": "リラックス", "desc": "穏やかで、あまり緊張や恐れを感じない"}, {"id": "N-H1", "name": "先を案じる", "desc": "緊張しやすく、先のことを心配しやすい"}, {"id": "N-L2", "name": "腹を立てにくい", "desc": "めったに腹を立てず、人と友好的に接する"}, {"id": "N-H2", "name": "沸点が低め", "desc": "いら立ちや怒りを感じやすい"}, {"id": "N-L3", "name": "くよくよしない", "desc": "めったに落ち込まず、先に希望を持てる"}, {"id": "N-H3", "name": "気分が沈みやすい", "desc": "がっかりしたり、気分が落ち込んだりしやすい"}, {"id": "N-L4", "name": "物おじしない", "desc": "人前でも気後れせず、ゆとりがある"}, {"id": "N-H4", "name": "人目に敏感", "desc": "人前で恥ずかしさや気後れを感じやすい"}, {"id": "N-L5", "name": "欲をこらえる", "desc": "誘惑があっても、自分を抑えられる"}, {"id": "N-H5", "name": "欲求に動かされやすい", "desc": "やりたいと思ったら、こらえきれないことが多い"}, {"id": "N-L6", "name": "回復力", "desc": "困難の中でも冷静さを保ち、立ち直れる"}, {"id": "N-H6", "name": "傷つきやすい", "desc": "強いストレスがかかると、混乱しやすい"}, {"id": "O-L1", "name": "現実を見る", "desc": "空想より、現実的に考えることを好む"}, {"id": "O-H1", "name": "空想好き", "desc": "想像をふくらませ、空想を楽しむ"}, {"id": "O-L2", "name": "芸術に関心が薄い", "desc": "芸術や美しいものには、あまり心を動かされない"}, {"id": "O-H2", "name": "美的感受性", "desc": "芸術や美しいものに心を動かされる"}, {"id": "O-L3", "name": "淡々としている", "desc": "感情の起伏が小さく、気持ちにあまり左右されない"}, {"id": "O-H3", "name": "感情の豊かさ", "desc": "自分の気持ちに敏感で、感情を大切にする"}, {"id": "O-L4", "name": "慣れ親しんだもの", "desc": "慣れたものや、決まったやり方を好む"}, {"id": "O-H4", "name": "新しいもの好き", "desc": "新しいことや、いろいろな活動を試してみる"}, {"id": "O-L5", "name": "具体的思考", "desc": "理屈より、実際の事実を重視する"}, {"id": "O-H5", "name": "知的好奇心", "desc": "理論や考えることに興味を持ち、分析を好む"}, {"id": "O-L6", "name": "決まりに従う", "desc": "社会の決まりや、昔からの価値観を大切にする"}, {"id": "O-H6", "name": "決まりにとらわれない", "desc": "社会の決まりや価値観にとらわれず、偏見を持たない"}]};
 /* 価値観カード：採点の仕組み（体験版・本編で共通）
    1枚の回答は 1〜6。下位特性の位置 = 高い側の点 − 低い側の点（−5〜+5）。
@@ -178,16 +178,16 @@ const Core = (() => {
     const h = ans[`${t}-H${n}`], l = ans[`${t}-L${n}`];
     if (h == null || l == null) return null;
     // 型：差が2以上なら寄っている側。差が小さいときは、2枚の合計で
-    // 「どちらも当てはまる」「どちらも当てはまらない」「中ほど」を分ける
+    // 「両方の顔がある」（どちらも高い：ふれ幅が大きい）と「真ん中」（どちらの端でもない）を分ける
     const f = h - l, sum = h + l;
     let type;
     if (f >= 2) type = "high";
     else if (f <= -2) type = "low";
-    else if (sum >= 9) type = "both";     // 平均4.5以上
-    else if (sum <= 5) type = "neither";  // 平均2.5以下
-    else type = "middle";
-    const flag = type === "both" || type === "neither" ? type : null;
-    return { t, n, h, l, f, sum, type, flag };
+    else if (sum >= 9) type = "both";  // 平均4.5以上
+    else type = "center";
+    const lowBoth = type === "center" && sum <= 5; // どちらにも「当てはまらない」寄り
+    const flag = type === "both" ? "both" : lowBoth ? "center" : null;
+    return { t, n, h, l, f, sum, type, lowBoth, flag };
   }
 
   function trait(ans, t) {
@@ -284,13 +284,18 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
 function resetAll() {
-  S = { answers: {}, queue: [], pos: 0, trialTrait: null, oneUp: null };
+  if (IS_TRIAL) {  // 体験版では外向性の12枚だけを消す
+    scopeIds().forEach((id) => delete S.answers[id]);
+    S.queue = []; S.pos = 0;
+  } else {
+    S = { answers: {}, queue: [], pos: 0, oneUp: null };
+  }
   save();
 }
 
 /* ---------- 出題の範囲 ---------- */
 function scopeIds() {
-  if (IS_TRIAL) return D.cards.filter((c) => c.trait === S.trialTrait).map((c) => c.id);
+  if (IS_TRIAL) return D.cards.filter((c) => c.trait === CONFIG.trialTrait).map((c) => c.id);
   return D.cards.map((c) => c.id);
 }
 function answeredCount() { return scopeIds().filter((id) => S.answers[id] != null).length; }
@@ -313,24 +318,22 @@ function viewIntro() {
   } else if (!IS_TRIAL && n === 60) {
     resume = `<div class="resume"><h3>60枚すべてに答えています</h3>
       <div class="row"><button class="btn" id="result">結果を見る</button><button class="textbtn" id="reset">回答を消して最初から</button></div></div>`;
-  } else if (IS_TRIAL && S.trialTrait && done()) {
-    resume = `<div class="resume"><h3>${esc(tname(S.trialTrait))}の12枚に答えています</h3>
-      <div class="row"><button class="btn" id="result">結果を見る</button><button class="textbtn" id="reset">回答を消して最初から</button></div></div>`;
+  } else if (IS_TRIAL && done()) {
+    resume = `<div class="resume"><h3>${esc(tname(CONFIG.trialTrait))}の12枚に答えています</h3>
+      <div class="row"><button class="btn" id="result">結果を見る</button><button class="textbtn" id="reset">答え直す</button></div></div>`;
+  } else if (IS_TRIAL && n > 0) {
+    resume = `<div class="resume"><h3>前回の続きがあります</h3><p class="small">12枚のうち${n}枚に答えています。</p>
+      <div class="row"><button class="btn" id="go">続きから答える</button></div></div>`;
   }
 
-  const picker = IS_TRIAL ? `
-    <section class="sec">
-      <h2>気になる特性を、ひとつ選んでください</h2>
-      <div class="picker">${D.traits.map((t) => `<button class="pick t${t.key}" data-t="${t.key}"><span class="nm">${esc(t.name)}</span><span class="sub">${t.facets.map(esc).join("・")}</span></button>`).join("")}</div>
-      <p class="small muted">選んだ特性の12枚が、順番を混ぜて1枚ずつ出てきます。</p>
-    </section>` : (n === 0 ? `<div class="row"><button class="btn" id="go">はじめる</button></div>` : "");
+  const picker = IS_TRIAL ? (n === 0 ? `<div class="row"><button class="btn" id="go">外向性の12枚に答える</button></div>` : "") : (n === 0 ? `<div class="row"><button class="btn" id="go">はじめる</button></div>` : "");
 
   app.innerHTML = `
     <header class="hero">
       <p class="eyebrow">${IS_TRIAL ? "体験版" : "本編"}　桜梅桃李コンサルティング</p>
       <h1>${IS_TRIAL ? "価値観カード 体験版" : "価値観カード"}</h1>
       <p class="lead">${IS_TRIAL
-        ? "ビッグファイブ（5因子モデル）をもとにした60枚のカードのうち、ひとつの特性の12枚に答えて、あなたの中の傾向を見てみましょう。"
+        ? "ビッグファイブ（5因子モデル）をもとにした60枚のカードのうち、外向性の12枚に答えて、あなたの中の傾向を見てみましょう。外向性は、人との関わり方や活動の仕方に表れる特性です。"
         : "ビッグファイブ（5因子モデル）をもとにした60枚のカードに答えて、あなたの中で目立つ傾向と、これから伸ばしたい「ワンランク上の一枚」を見つけます。"}</p>
       <div class="facts"><span>カード <b>${total}</b> 枚</span><span>所要 約<b>${IS_TRIAL ? 2 : 8}</b>分</span><span>登録 <b>不要</b></span></div>
     </header>
@@ -353,16 +356,14 @@ function viewIntro() {
   if (r) r.onclick = viewResult;
   const rs = document.getElementById("reset");
   if (rs) rs.onclick = () => { resetAll(); viewIntro(); };
-  app.querySelectorAll(".pick").forEach((b) => (b.onclick = () => {
-    if (S.trialTrait !== b.dataset.t) { S.trialTrait = b.dataset.t; S.queue = []; }
-    if (done()) { save(); viewResult(); return; }
-    startQueue(); viewQuestion();
-  }));
+
   window.scrollTo(0, 0);
 }
 
 /* ---------- 画面：カード ---------- */
 function viewQuestion() {
+  const scope = new Set(scopeIds());
+  if (!S.queue.every((id) => scope.has(id))) startQueue(); // 体験版と本編で保存を共有しているため
   if (S.pos >= S.queue.length) { if (done()) return viewResult(); startQueue(); }
   const id = S.queue[S.pos];
   const c = D.byId[id];
@@ -411,14 +412,14 @@ function axisHTML(t) {
     ${countsHTML(t)}
   </div>`;
 }
-const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "どちらも当てはまる", neither: "どちらも当てはまらない", middle: "中ほど" };
+const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "両方の顔がある", center: "どちらでもない（真ん中）" };
 function facetsHTML(t) {
   const r = Core.trait(S.answers, t);
   return `<div class="facets t${t}">${r.facets.map((x) => {
     const lo = D.byId[`${t}-L${x.n}`], hi = D.byId[`${t}-H${x.n}`];
     const flag = x.type === "both"
-      ? `<div class="flagtx">反対の2枚に、どちらも「当てはまる」寄りに答えています。場面によって使い分けているのかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
-      : x.type === "neither" ? `<div class="flagtx">反対の2枚に、どちらも「当てはまらない」寄りに答えています。この面はふだんあまり意識していないか、どちらの言葉もしっくりこなかったのかもしれません。</div>` : "";
+      ? `<div class="flagtx">反対の2枚の、どちらにも当てはまると答えています。場面によって出る面が変わる、ふれ幅の大きいところかもしれません。何にでも「当てはまる」と答えやすいくせが出ている場合もあります。</div>`
+      : x.lowBoth ? `<div class="flagtx">反対の2枚の、どちらにも当てはまらないと答えています。どちらの端にも寄らず、ほどほどの位置にいるのかもしれません。どちらのカードの言葉もしっくりこなかった場合もあります。</div>` : "";
     return `<div class="fr">
       <div class="fn"><span>${esc(fname(t, x.n))}</span><span class="ty ${x.type}">${TYPE_LABEL[x.type]}</span></div>
       <div class="cd lo"><b>${esc(lo.name)}</b> <span class="sc">${x.l}</span></div>
@@ -430,11 +431,11 @@ function facetsHTML(t) {
 }
 function countsHTML(t) {
   const fs = Core.trait(S.answers, t).facets;
-  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "neither").length;
+  const b = fs.filter((x) => x.type === "both").length, n = fs.filter((x) => x.type === "center").length;
   if (!b && !n) return "";
   const parts = [];
-  if (b) parts.push(`どちらも当てはまる ${b}つ`);
-  if (n) parts.push(`どちらも当てはまらない ${n}つ`);
+  if (b) parts.push(`両方の顔がある ${b}つ`);
+  if (n) parts.push(`どちらでもない（真ん中） ${n}つ`);
   return `<div class="counts">6つの下位特性のうち、${parts.join("、")}。この点は上の位置には表れないので、下位特性の結果も見てください。</div>`;
 }
 function styleHTML(ids) {
@@ -442,8 +443,8 @@ function styleHTML(ids) {
   if (!st || !st.kind) return "";
   const m = st.m.toFixed(1);
   return st.kind === "yes"
-    ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「どちらも当てはまる」は少し割り引いて見てください。</p>`
-    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらも当てはまらない」は少し割り引いて見てください。</p>`;
+    ? `<p class="callout style">全体に「当てはまる」寄りに答えています（平均${m}点）。反対の2枚がどちらも高くなりやすいので、「両方の顔がある」は少し割り引いて見てください。</p>`
+    : `<p class="callout style">全体に「当てはまらない」寄りに答えています（平均${m}点）。反対の2枚がどちらも低くなりやすいので、「どちらでもない（真ん中）」は少し割り引いて見てください。</p>`;
 }
 function standHTML(list) {
   if (!list.length) return `<p class="small muted">どの下位特性も、高い側と低い側の差が小さめでした。どちらかに大きく寄らず、場面に合わせて動けるのかもしれません。</p>`;
@@ -455,7 +456,7 @@ function standHTML(list) {
 }
 function summaryText() {
   const lines = [IS_TRIAL ? "価値観カード 体験版の結果" : "価値観カードの結果", ""];
-  const ts = IS_TRIAL ? [S.trialTrait] : D.traits.map((t) => t.key);
+  const ts = IS_TRIAL ? [CONFIG.trialTrait] : D.traits.map((t) => t.key);
   ts.forEach((t) => {
     const r = Core.trait(S.answers, t);
     lines.push(`■${tname(t)}：${Core.lean(r.mean)}`);
@@ -491,7 +492,7 @@ function viewResult() {
   const ts = D.traits.map((t) => t.key);
   const stands = Core.standouts(S.answers, D.traits, 3);
   const both = [], neither = [];
-  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.type === "neither") neither.push(x); }));
+  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.lowBoth) neither.push(x); }));
 
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
@@ -500,12 +501,12 @@ function viewResult() {
     <section class="sec"><h2>あなたの中で目立つ下位特性</h2>
       <p class="small muted">高い側と低い側の差が大きかったものを、最大3つ挙げています。</p>${standHTML(stands)}</section>
     ${styleHTML(D.cards.map((c) => c.id))}
-    ${both.length ? `<section class="callout"><h3>どちらも当てはまるもの（場面で使い分けているかもしれません）</h3>
+    ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
       <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
       <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
-    ${neither.length ? `<section class="callout"><h3>どちらも当てはまらないもの</h3>
+    ${neither.length ? `<section class="callout"><h3>どちらにも当てはまらないもの（真ん中にいるところ）</h3>
       <p>${neither.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">ふだんあまり意識していない面かもしれません。それぞれのカードの言葉が、自分のどんな場面に近いかを考えてみてください。</p></section>` : ""}
+      <p class="small muted">どちらの端にも寄らず、ほどほどの位置にいるところかもしれません。両方の顔がある場合と違い、場面で大きく変わるというより、いつも同じくらいの位置にいると考えられます。どちらのカードの言葉もしっくりこなかった可能性もあります。</p></section>` : ""}
     <section class="sec"><h2>30の下位特性</h2>
       <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。</p>
       ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
@@ -565,7 +566,7 @@ function renderOneUp() {
 }
 
 function viewTrialResult() {
-  const t = S.trialTrait;
+  const t = CONFIG.trialTrait;
   const stands = Core.standouts(S.answers, [D.traitByKey[t]], 2);
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>${esc(tname(t))}の中の、あなたの傾向</h1>
@@ -573,20 +574,20 @@ function viewTrialResult() {
     ${axisHTML(t)}
     ${styleHTML(D.cards.filter((c) => c.trait === t).map((c) => c.id))}
     <section class="sec"><h2>6つの下位特性</h2>
-      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。両方が長いときも、両方が短いときも、上の位置では真ん中に寄ります。</p>${facetsHTML(t)}</section>
+      <p class="small muted">左右の棒は、反対の2枚それぞれへの答え（6点満点）です。両方が長いとき（両方の顔がある）も、両方が短いとき（真ん中）も、上の位置では真ん中に寄ります。</p>${facetsHTML(t)}</section>
     <section class="sec"><h2>この特性の中で目立つもの</h2>${standHTML(stands)}</section>
     ${copyBtn()}
     <section class="resume">
       <h3>本編では、ここから先ができます</h3>
       <ul class="steps">
         <li>60枚すべてで、5つの特性と30の下位特性の傾向を見る</li>
-        <li>反対の2枚にどちらも当てはまる「場面での使い分け」に気づく</li>
+        <li>反対の2枚のどちらにも当てはまる「両方の顔」と、どちらでもない「真ん中」を見分ける</li>
         <li>これから伸ばしたい方向の「ワンランク上の一枚」と、今週ためす問いを受け取る</li>
       </ul>
       <p class="small">体験版の12枚の回答は、この端末に保存されています。同じ端末で本編を開けば、残りの48枚に答えるだけで済みます。</p>
       <div class="row"><a class="btn" href="${esc(CONFIG.articleUrl)}" target="_blank" rel="noopener">本編の案内を読む（note）</a></div>
     </section>
-    <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
+    <div class="row"><button class="textbtn" id="reset">答え直す</button></div>
     ${footer()}`;
   bindCopy();
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
@@ -602,7 +603,7 @@ function footer() {
 }
 
 /* ---------- 開始 ---------- */
-if (!IS_TRIAL && answeredCount() === 60) viewResult();
+if (done()) viewResult();
 else viewIntro();
 </script>
 </body>
