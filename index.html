@@ -156,6 +156,7 @@ details.tr .body{padding-bottom:14px}
 .cov .cv1 .q b,.cov .cv1 .by b{color:var(--tc)}
 .cov .cv1 .act{font-weight:600}
 .cov .textbtn{align-self:flex-start}
+.cov .mkopen{border:1.5px solid var(--tc);color:var(--tc);background:var(--surface);border-radius:999px;padding:8px 16px;font-weight:700;text-decoration:none;font-size:14px;margin-top:4px}
 .mk{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
 .mkq{margin:4px 0 0;font-size:13px;font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -685,7 +686,7 @@ function makerHTML(c, pdf) {
   const sent = mineSentence(c);
   if (pdf) return sent ? `<div class="mine"><b>自分用の一歩</b><span>${esc(sent)}</span></div>` : "";
   const m = (S.mine || {})[c.key] || {};
-  if (!m.open) return `${sent ? `<div class="mine"><b>自分用の一歩</b><span>${esc(sent)}</span></div>` : ""}<button class="textbtn mkopen" data-k="${c.key}">${sent ? "作り直す" : "自分用に作る（3つ選ぶだけ）"}</button>`;
+  if (!m.open) return `${sent ? `<div class="mine"><b>自分用の一歩</b><span>${esc(sent)}</span></div>` : ""}<button class="textbtn mkopen" data-k="${c.key}">${sent ? "作り直す" : "＋ 自分用に作る（3つ選ぶだけ）"}</button>`;
   const chips = (group, items, cur, dis) => `<div class="chips">${items.map(([v, label]) => `<button class="chip" data-k="${c.key}" data-g="${group}" data-v="${v}" aria-pressed="${String(cur) === String(v)}"${dis ? " disabled" : ""}>${esc(label)}</button>`).join("")}</div>`;
   const ws = W.map((w, i) => [i, w.text, w.scenes]).filter((w) => m.scene && w[2].includes(m.scene));
   return `<div class="mk">
