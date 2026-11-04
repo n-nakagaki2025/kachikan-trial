@@ -569,13 +569,16 @@ function typesOf(t) {
     .map((x) => Object.assign({}, x, { s: strength(x), contra: x.type === "both" || x.type === "mismatch" }))
     .sort((a, b) => b.s - a.s || (b.contra - a.contra));
 }
+// 型カード：強く出た順に3つまで。ただし、補う一歩に出てくる型は、3つに入らなくても必ず出す（補う一歩の名前と型カードを食い違わせないため）
 function typesHTML(t, limit = 3) {
-  const list = typesOf(t).slice(0, limit);
+  const all = typesOf(t), top = all.slice(0, limit), used = new Set();
+  if (typeof coversOf === "function") coversOf(t).forEach((c) => { used.add(c.x.n); used.add(c.y.n); });
+  const list = top.concat(all.slice(limit).filter((x) => used.has(x.n)));
   if (!list.length) return "";
   return `<div class="types">${list.map((x) => {
     const r = readingOf(x), lo = D.byId[`${x.t}-L${x.n}`], hi = D.byId[`${x.t}-H${x.n}`];
     return `<div class="ty1 t${x.t}">
-      <span class="from">${esc(hi.name)} ${x.h}点 ／ ${esc(lo.name)} ${x.l}点</span>
+      <span class="from">${esc(hi.name)} ${x.h}点 ／ ${esc(lo.name)} ${x.l}点${top.includes(x) ? "" : "　（補う一歩に出てくる型）"}</span>
       <span class="nm">${esc(r.name)}</span>
       <p>${esc(r.text)}</p>
     </div>`;
@@ -678,7 +681,7 @@ function mineSentence(c) {
   if (!m || !W || m.scene == null || m.waza == null || m.when == null || !W[m.waza]) return "";
   const sc = MK_SCENES.find((x) => x[0] === m.scene), wh = MK_WHEN.find((x) => x[0] === m.when);
   if (!sc || !wh) return "";
-  return `${wh[2]}${sc[1]}で、「${sideName(c.from)}」の技「${W[m.waza].text.replace(/「/g, "『").replace(/」/g, "』")}」を使う。`;
+  return `${wh[2]}${sc[1]}で、「${typeName(c.y)}」の技「${W[m.waza].text.replace(/「/g, "『").replace(/」/g, "』")}」を使う。`;
 }
 function makerHTML(c, pdf) {
   const W = wazaOf(c.from);
@@ -691,7 +694,7 @@ function makerHTML(c, pdf) {
   const ws = W.map((w, i) => [i, w.text, w.scenes]).filter((w) => m.scene && w[2].includes(m.scene));
   return `<div class="mk">
     <p class="mkq">1. どんな場面で？</p>${chips("scene", MK_SCENES, m.scene)}
-    <p class="mkq">2. どの技を使う？（「${esc(sideName(c.from))}」の技）</p>${m.scene ? chips("waza", ws, m.waza) : `<p class="small muted">先に場面を選んでください。</p>`}
+    <p class="mkq">2. どの技を使う？（「${esc(typeName(c.y))}」の技）</p>${m.scene ? chips("waza", ws, m.waza) : `<p class="small muted">先に場面を選んでください。</p>`}
     <p class="mkq">3. いつ？</p>${chips("when", MK_WHEN, m.when)}
     ${sent ? `<div class="mine"><b>自分用の一歩</b><span>${esc(sent)}</span></div><p class="small muted">この一文は、結果のPDFにも入ります。</p><button class="textbtn mkclose" data-k="${c.key}">閉じる</button>` : ""}
   </div>`;
