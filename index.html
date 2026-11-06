@@ -151,6 +151,7 @@ details.tr .body{padding-bottom:14px}
 .ty1 .from{font-size:12px;color:var(--muted)}
 .ty1 .nm{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.35;color:var(--tc)}
 .ty1 p{margin:0}
+.dh{font-size:15px;margin:14px 0 6px;color:var(--muted);font-family:var(--body)}
 .sum1{background:var(--surface);border:2px solid var(--tc);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px;font-size:15px;margin-bottom:12px}
 .sum1 .lb{font-size:12px;letter-spacing:.1em;color:var(--muted)}
 .sum1 .nm{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.3;color:var(--tc)}
@@ -486,7 +487,7 @@ function viewQuestion() {
 }
 
 /* ---------- 結果の部品 ---------- */
-function axisHTML(t) {
+function axisHTML(t, compact = false) {
   const r = Core.trait(S.answers, t);
   const pos = (v) => ((v + 5) / 10) * 100;
   const label = Core.lean(r.mean, r.split);
@@ -501,7 +502,7 @@ function axisHTML(t) {
     <div class="top"><span class="tn">${esc(tname(t))}</span><span class="ln">${label}</span></div>
     <div class="track" style="--th:${22 + maxStack * 10}px" role="img" aria-label="${esc(tname(t))}：${label}">${dots}<i style="left:${pos(r.mean)}%"></i></div>
     <div class="ends"><span>低い側</span><span>高い側</span></div>
-    ${countsHTML(t)}
+    ${compact ? "" : countsHTML(t)}
   </div>`;
 }
 const TYPE_LABEL = { high: "高い側寄り", low: "低い側寄り", both: "両方の顔がある", center: "どちらでもない（真ん中）", mismatch: "どちらの言葉も合わない" };
@@ -545,19 +546,6 @@ function countsHTML(t) {
   if (!parts.length) return habit;
   return `<div class="counts"><p>位置は、各組の2枚の点の差で決まるので、2枚とも極端な点（どちらも高い、またはどちらも低い）でも、位置は中央に寄ります。</p><p>また、今回の結果には、${parts.join("、")}あります。くわしくは下の6組のカードで確かめてください。</p></div>${habit}`;
 }
-const STAND_TAG = { high: "大きく高い側へ", low: "大きく低い側へ", both: "両方の顔がある", mismatch: "どちらの言葉も合わない" };
-function standHTML(list) {
-  if (!list.length) return `<p class="small muted">大きく寄っている組も、2枚の答えが食い違う組もありませんでした。全体に、どちらかの端へ大きく振れずに答えています。</p>`;
-  return `<div class="stand">${list.map((x) => {
-    const lo = D.byId[`${x.t}-L${x.n}`], hi = D.byId[`${x.t}-H${x.n}`];
-    const head = x.contra ? `${esc(hi.name)}／${esc(lo.name)}` : esc((x.f > 0 ? hi : lo).name);
-    const sub = x.contra
-      ? `${x.type === "both" ? "この組の2枚の、どちらにも当てはまる" : "この組の2枚の、どちらにも当てはまらない"}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`
-      : `${(x.f > 0 ? hi : lo).desc}（${hi.name} ${x.h}点、${lo.name} ${x.l}点）`;
-    return `<div class="st t${x.t}"><span class="sub">${esc(tname(x.t))}・${esc(fname(x.t, x.n))}　<b>${STAND_TAG[x.type]}</b></span><span class="nm">${head}</span><span class="sub">${esc(sub)}</span></div>`;
-  }).join("")}</div>`;
-}
-const STAND_NOTE = "大きく寄っている組と、2枚の答えが食い違う組（両方の顔がある／どちらの言葉も合わない）の中から、度合いの強い順に挙げています。";
 /* ---------- 見えてくる型 ---------- */
 // 両方YES・両方NOは、同じ特性の中で2組までなら「型」として読む。3組以上なら答え方の癖として扱い、型としては読まない
 function habitOf(t) {
@@ -578,19 +566,29 @@ function typesOf(t) {
     .sort((a, b) => b.s - a.s || (b.contra - a.contra));
 }
 // 型カード：強く出た順に3つまで。ただし、補う一歩に出てくる型は、3つに入らなくても必ず出す（補う一歩の名前と型カードを食い違わせないため）
-function typesHTML(t, limit = 3) {
-  const all = typesOf(t), top = all.slice(0, limit), used = new Set();
-  if (typeof coversOf === "function") coversOf(t).forEach((c) => { used.add(c.x.n); used.add(c.y.n); });
-  const list = top.concat(all.slice(limit).filter((x) => used.has(x.n)));
+function typeCardsHTML(list, top, withTrait) {
   if (!list.length) return "";
   return `<div class="types">${list.map((x) => {
     const r = readingOf(x), lo = D.byId[`${x.t}-L${x.n}`], hi = D.byId[`${x.t}-H${x.n}`];
     return `<div class="ty1 t${x.t}">
-      <span class="from">${esc(hi.name)} ${x.h}点 ／ ${esc(lo.name)} ${x.l}点${top.includes(x) ? "" : "　（補う一歩に出てくる型）"}</span>
+      <span class="from">${withTrait ? `${esc(tname(x.t))}｜` : ""}${esc(hi.name)} ${x.h}点 ／ ${esc(lo.name)} ${x.l}点${top.includes(x) ? "" : "　（補う一歩に出てくる型）"}</span>
       <span class="nm">${esc(r.name)}</span>
       <p>${esc(r.text)}</p>
     </div>`;
   }).join("")}</div>`;
+}
+// 型カード：強く出た順に3つまで。ただし、補う一歩に出てくる型は、3つに入らなくても必ず出す
+function typesHTML(t, limit = 3) {
+  const all = typesOf(t), top = all.slice(0, limit), used = new Set();
+  coversOf(t).forEach((c) => { used.add(c.x.t + c.x.n); used.add(c.y.t + c.y.n); });
+  return typeCardsHTML(top.concat(all.slice(limit).filter((x) => used.has(x.t + x.n))), top, false);
+}
+// 本編：5つの特性すべての型から、強く出た順に3つまで（補う一歩に出てくる型は必ず出す）
+function typesAll() { return D.traits.flatMap((tr) => typesOf(tr.key)).sort((a, b) => b.s - a.s || (b.contra - a.contra)); }
+function typesAllHTML(limit = 3) {
+  const all = typesAll(), top = all.slice(0, limit), used = new Set();
+  coversAll().forEach((c) => { used.add(c.x.t + c.x.n); used.add(c.y.t + c.y.n); });
+  return typeCardsHTML(top.concat(all.slice(limit).filter((x) => used.has(x.t + x.n))), top, true);
 }
 // 総括：上から順に判定し、必ずどれか1つに当てはまる（最後の flat が受け皿）
 //  1 両方YESが3組以上 → habit_both　2 両方NOが3組以上 → habit_mismatch
@@ -642,27 +640,31 @@ function summaryHTML(t) {
    2) cards.json の covers にある「補える組」のうち、本人が同じ側に寄っている組（または両方YESの組）があれば出す
       候補が複数あれば、まだ使っていない組 → 強く出ている組 の順で選ぶ
    3) 最大2つ */
-function coversOf(t, limit = 2) {
-  const CV = (DATA.covers || {})[t] || {};
-  const fs = Core.trait(S.answers, t).facets;
-  if (fs.length < 6) return [];
-  const hab = habitOf(t), byN = {};
-  fs.forEach((x) => (byN[x.n] = x));
+//    本編では、5つの特性すべてを対象にする（補う組は別の特性でもよい。covers の from が "C2H" なら誠実性）
+function coversOf(t, limit = 2) { return coversIn([t], limit); }
+function coversAll(limit = 2) { return coversIn(D.traits.map((x) => x.key), limit); }
+function coversIn(traits, limit) {
+  const byKey = {}, all = [];
+  for (const t of traits) {
+    const fs = Core.trait(S.answers, t).facets;
+    if (fs.length < 6) continue;
+    fs.forEach((x) => { byKey[t + x.n] = x; all.push(x); });
+  }
   const strength = (x) => (x.type === "both" ? Math.abs(x.sum - 7) : Math.abs(x.f));
   const has = (key) => { // key の例："E3H"（外向性・3組目・高い側）
-    const x = byN[Number(key.slice(1, -1))];
+    const x = byKey[key.slice(0, -1)];
     if (!x) return null;
     if (x.type === (key.slice(-1) === "H" ? "high" : "low")) return x;
-    if (x.type === "both" && !hab.both) return x;
+    if (x.type === "both" && !habitOf(x.t).both) return x;
     return null;
   };
-  const leans = fs.filter((x) => x.type === "high" || x.type === "low").sort((a, b) => Math.abs(b.f) - Math.abs(a.f));
+  const leans = all.filter((x) => x.type === "high" || x.type === "low").sort((a, b) => Math.abs(b.f) - Math.abs(a.f));
   const out = [], used = new Set();
   for (const x of leans) {
     if (out.length >= limit) break;
-    const e = CV[`${t}${x.n}${x.type === "high" ? "H" : "L"}`];
+    const t = x.t, e = ((DATA.covers || {})[t] || {})[`${t}${x.n}${x.type === "high" ? "H" : "L"}`];
     if (!e) continue;
-    const cands = e.by.map((b) => ({ b, y: has(b.from) })).filter((o) => o.y && o.y.n !== x.n);
+    const cands = e.by.map((b) => ({ b, y: has(b.from) })).filter((o) => o.y && !(o.y.t === x.t && o.y.n === x.n));
     if (!cands.length) continue;
     cands.sort((p, q) => (used.has(p.b.from) - used.has(q.b.from)) || (strength(q.y) - strength(p.y)));
     used.add(cands[0].b.from);
@@ -725,16 +727,16 @@ function bindMaker(t) {
   }));
 }
 function coverHTML(t, pdf = false) {
-  const list = coversOf(t);
+  const full = t == null, list = full ? coversAll() : coversOf(t), tc = full ? (list[0] ? list[0].x.t : "E") : t;
   const head = `<span class="lb">ワンランク上の自分へ</span><span class="nm">補う一歩</span>`;
-  if (!list.length) return `<div class="cov t${t}" id="covbox">${head}
-    <p>今回の答えでは、${esc(tname(t))}の6組の中に、補い合える組の組み合わせが見つかりませんでした。あなたの場合、補う手は${esc(tname(t))}の外にあります。本編では、ほかの4つの特性から探します。</p></div>`;
-  return `<div class="cov t${t}"${pdf ? "" : ` id="covbox"`}>${head}
+  if (!list.length) return `<div class="cov t${tc}" id="covbox">${head}
+    <p>${full ? "今回の答えでは、補い合える型の組み合わせが見つかりませんでした。答えが真ん中に集まっているときに起こります。特性ごとの詳しい結果で、あなたの型を確かめてください。" : `今回の答えでは、${esc(tname(t))}の6組の中に、補い合える組の組み合わせが見つかりませんでした。あなたの場合、補う手は${esc(tname(t))}の外にあります。本編では、ほかの4つの特性から探します。`}</p></div>`;
+  return `<div class="cov t${tc}"${pdf ? "" : ` id="covbox"`}>${head}
     <p class="small">どの型にも、その良さの裏側に、つまずきやすい場面があります。補う一歩は、その場面を、あなたがすでに持っているもう一つの型の力で乗り切る一歩です。自分らしさを変えずに、打てる手がひとつ増えます。</p>
     ${list.map((c) => `<div class="cv1">
       <span class="q"><b>「${esc(typeName(c.x))}」</b>は、${esc(c.tradeoff)}。</span>
       <span class="by">補う力：あなたの中の<b>「${esc(typeName(c.y))}」</b></span>
-      <p class="act">${esc(c.text)}</p>${makerHTML(c, pdf)}</div>`).join("")}</div>`;
+      <p class="act">${esc(c.text)}</p>${IS_TRIAL ? makerHTML(c, pdf) : ""}</div>`).join("")}</div>`;
 }
 const TYPES_NOTE = "強く答えた組の、2枚の答えの組み合わせから読み取っています。平均的な人との比較ではありません。";
 /* ---------- PDF ---------- */
@@ -777,13 +779,10 @@ function reportBlocks() {
   } else {
     const ts = D.traits.map((x) => x.key);
     B.push(`<div><span class="eb">VALUE CARDS</span><h1>価値観カード<br>あなたの中の傾向</h1><p class="mu">${date}　60枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
-    ts.forEach((t) => B.push(axisHTML(t)));
-    B.push(`<section class="sec"><h2>あなたの中で目立つ組</h2><p class="small mu">${STAND_NOTE}</p>${standHTML(Core.standouts(S.answers, D.traits, 5))}</section>`);
-    if (S.oneUp && S.oneUp.cardId) {
-      const c = D.byId[S.oneUp.cardId];
-      B.push(`<div class="onecard t${c.trait}"><span class="lb">ワンランク上の一枚</span><span class="nm">${esc(c.name)}</span><p>${esc(c.desc)}</p><p class="small mu">${esc(tname(c.trait))}・${esc(fname(c.trait, c.n))}（${c.side === "H" ? "高い側" : "低い側"}）　今の答え：${S.answers[c.id]}点</p></div>`);
-    }
-    ts.forEach((t) => B.push(`<section class="sec"><h2>${esc(tname(t))}の6組のカード</h2><p class="small muted">1組は、概ね反対の意味に相当する一対のカードです。</p>${facetsHTML(t, true)}</section>`));
+    B.push(`<section class="sec"><h2>5つの特性の全体像</h2>${ts.map((x) => axisHTML(x, true)).join("")}<p class="small mu">2枚とも高い点、または2枚とも低い点をつけた組は、位置が真ん中に寄ります。</p></section>`);
+    B.push(`<section class="sec"><h2>あなたに見えてくる型</h2><p class="small mu">${TYPES_NOTE_ALL}</p>${typesAllHTML()}</section>`);
+    B.push(coverHTML(null, true));
+    ts.forEach((t) => B.push(`<section class="sec"><h2>${esc(tname(t))}</h2>${traitDetailHTML(t, true)}</section>`));
   }
   return B;
 }
@@ -836,82 +835,41 @@ function bindPdf() {
 }
 
 /* ---------- 画面：結果 ---------- */
+function traitDetailHTML(t, pdf = false) {
+  const types = typesOf(t).slice(0, 3);
+  return `${axisHTML(t)}${types.length ? `<h3 class="dh">この特性で見えてくる型</h3>${typeCardsHTML(types, types, false)}` : ""}
+    ${summaryHTML(t)}
+    <h3 class="dh">6組のカード</h3>${facetsHTML(t, pdf)}`;
+}
+const TYPES_NOTE_ALL = "5つの特性それぞれで、強く答えた組の2枚の組み合わせから読み取り、強く出た順に挙げています。平均的な人との比較ではありません。";
 function viewResult() {
   if (IS_TRIAL) return viewTrialResult();
   const ts = D.traits.map((t) => t.key);
-  const stands = Core.standouts(S.answers, D.traits, 5);
-  const both = [], mism = [];
-  ts.forEach((t) => Core.trait(S.answers, t).facets.forEach((x) => { if (x.type === "both") both.push(x); if (x.type === "mismatch") mism.push(x); }));
-  const openT = new Set(mism.map((x) => x.t));
-
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">結果</p><h1>あなたの中の傾向</h1>
-      <p class="small muted">大きな点は、各組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。平均的な人との比較ではありません。</p></header>
-    <section class="sec"><h2>5つの特性</h2>${ts.map(axisHTML).join("")}</section>
-    <section class="sec"><h2>あなたの中で目立つ組</h2>
-      <p class="small muted">${STAND_NOTE}</p>${standHTML(stands)}</section>
-    ${both.length ? `<section class="callout"><h3>両方の顔があるもの（ふれ幅が大きいところ）</h3>
-      <p>${both.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">人のふるまいは、同じ人の中でも場面によって大きく変わります（Fleeson, 2001）。どんな場面でどちらが出るか、振り返ってみてください。</p></section>` : ""}
-    ${mism.length ? `<section class="callout"><h3>どちらの言葉も合わなかったもの</h3>
-      <p>${mism.map((x) => `${esc(D.byId[`${x.t}-L${x.n}`].name)}／${esc(D.byId[`${x.t}-H${x.n}`].name)}`).join("、")}</p>
-      <p class="small muted">2枚とも強く「当てはまらない」と答えた組です。</p></section>` : ""}
-    <section class="sec"><h2>30組のカード</h2>
-      <p class="small muted">1組は、概ね反対の意味に相当する一対のカードです。</p>
-      ${ts.map((t, i) => `<details class="tr t${t}" ${i === 0 || openT.has(t) ? "open" : ""}><summary>${esc(tname(t))}</summary><div class="body">${facetsHTML(t)}</div></details>`).join("")}
+      <p class="small muted">60枚への答えから読み取っています。平均的な人との比較ではありません。</p></header>
+    <section class="sec"><h2>5つの特性の全体像</h2>
+      <p class="small muted">大きな点は、各組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。</p>
+      ${ts.map((x) => axisHTML(x, true)).join("")}
+      <p class="small muted">2枚とも高い点、または2枚とも低い点をつけた組は、位置が真ん中に寄ります。くわしくは、下の「特性ごとの詳しい結果」で確かめられます。</p></section>
+    <section class="sec"><h2>あなたに見えてくる型</h2>
+      <p class="small muted">${TYPES_NOTE_ALL}</p>${typesAllHTML()}</section>
+    ${coverHTML(null)}
+    <section class="sec"><h2>特性ごとの詳しい結果</h2>
+      <p class="small muted">1組は、概ね反対の意味に相当する一対のカードです。開くと、その特性の型と、6組のカードへの答えが見られます。</p>
+      ${ts.map((t) => `<details class="tr t${t}"><summary>${esc(tname(t))}</summary><div class="body">${traitDetailHTML(t)}</div></details>`).join("")}
     </section>
-    <section class="sec" id="oneup"></section>
     ${pdfBtn()}
+    <section class="next"><h2>次の一歩</h2>
+      <div class="nx"><h3>活かし方を一緒に考えたい</h3>
+        <p>この型を仕事や暮らしにどう生かすかは、コーチングのセッションで一緒に考えることができます。</p>
+        <div class="row"><a class="btn ghost" href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">セッションについて問い合わせる</a></div></div>
+    </section>
     <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
     ${footer()}`;
   bindPdf();
   document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
-  renderOneUp();
   window.scrollTo(0, 0);
-}
-
-function renderOneUp() {
-  const box = document.getElementById("oneup");
-  const sel = S.oneUp || {};
-  const traitBtns = D.traits.map((t) => `<button class="pick t${t.key}" data-t="${t.key}" aria-pressed="${sel.t === t.key}"><span class="nm">${esc(t.name)}</span></button>`).join("");
-  let dirs = "", card = "";
-  if (sel.t) {
-    const sides = sel.t === "N" ? ["L"] : ["H", "L"];
-    dirs = `<p class="small">どちらの方向に伸ばしたいですか？</p><div class="dirs">${sides.map((s) => {
-      const names = D.cards.filter((c) => c.trait === sel.t && c.side === s).slice(0, 3).map((c) => c.name).join("・");
-      return `<button class="pick t${sel.t}" data-s="${s}" aria-pressed="${sel.side === s}"><span class="nm">${s === "H" ? "高い側へ" : "低い側へ"}</span><span class="sub">${esc(names)} など</span></button>`;
-    }).join("")}</div>${sel.t === "N" ? `<p class="small muted">否定的情動性は、気持ちが揺れにくい側（低い側）への一枚だけを出しています。</p>` : ""}`;
-  }
-  if (sel.t && sel.side) {
-    const r = Core.oneUp(S.answers, D.cards, sel.t, sel.side);
-    if (r.card) {
-      S.oneUp = { t: sel.t, side: sel.side, cardId: r.card.id }; save();
-      card = `<div class="onecard t${sel.t}">
-        <span class="lb">ワンランク上の一枚</span>
-        <span class="nm">${esc(r.card.name)}</span>
-        <p>${esc(r.card.desc)}</p>
-        <p class="small muted">今のあなたの答え：「${Core.LIKERT[r.score - 1].label}」。この方向の6枚のうち、いちばん近いのに、まだ「当てはまる」に届いていないカードです。</p>
-      </div>
-      <div class="callout"><h3>この一枚を、今週ためしてみる</h3>
-        <ol class="qs">
-          <li>この一枚が出ている自分は、どんな場面で、何をしていそうですか。</li>
-          <li>今週、その場面に近いことが起きそうなのは、いつ・どこですか。</li>
-          <li>そこで、いつもより少しだけ違うことをするなら、何をしますか。小さく、できそうなことにしてください。</li>
-        </ol>
-        <p class="small muted">できなかった週があっても大丈夫です。できなかった理由に気づくことも、次の一歩の材料になります。</p>
-      </div>`;
-    } else {
-      S.oneUp = { t: sel.t, side: sel.side, cardId: null }; save();
-      card = `<div class="callout"><h3>この方向は、もう十分に表れています</h3><p>この方向の6枚は、すべて「当てはまる」以上でした。別の特性か方向を選んでみてください。</p></div>`;
-    }
-  }
-  box.innerHTML = `<h2>ワンランク上の一枚</h2>
-    <p class="small">これから伸ばしたい特性を、ひとつ選んでください。人は、自分で変えたいと望んだ特性ほど、少しずつ変わっていくことが分かっています（Hudson &amp; Fraley, 2015）。</p>
-    <div class="picker">${traitBtns}</div>${dirs}${card}
-    ${card ? `<div class="callout"><h3>ひとりで考えるのが難しければ</h3><p class="small">この一枚をどう生かすかは、コーチングのセッションで一緒に考えることもできます。</p><div class="row"><a class="btn" href="${esc(CONFIG.contactUrl)}" target="_blank" rel="noopener">問い合わせる</a></div></div>` : ""}`;
-  box.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { S.oneUp = { t: b.dataset.t }; save(); renderOneUp(); }));
-  box.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => { S.oneUp = { t: sel.t, side: b.dataset.s }; save(); renderOneUp(); }));
-  bindPdf();
 }
 
 function viewTrialResult() {
