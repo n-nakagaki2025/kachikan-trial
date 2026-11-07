@@ -774,7 +774,7 @@ function oneUpMoves(t) {
 }
 function oneUpHTML(t, pdf = false) {
   const moves = oneUpMoves(t);
-  const head = `<span class="lb">ワンランク上の自分へ</span><span class="nm">1点動かすと変わる型</span>`;
+  const head = `<span class="lb">新たな自分へ</span><span class="nm">1点動かすと変わる型</span>`;
   if (!moves.length) return pdf ? "" : `<div class="cov t${t}">${head}
     <p>今回の答えでは、${esc(tname(t))}の12枚の中に、1点動かして変わる型はありませんでした。本編では、ほかの4つの特性からも探せます。</p></div>`;
   const cur = SIM && moves.find((m) => m.id === SIM.id && m.v === SIM.v);
