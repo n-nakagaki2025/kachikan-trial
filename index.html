@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="12枚のカードで、自分の型と、つまずきやすい場面で打てる手を見つける無料の体験版です。診断ではなく、平均的な人とも比べません。">
+<meta name="description" content="12枚のカードで、自分の型と、カードを1点動かすと型がどう変わるかを見られる無料の体験版です。診断ではなく、平均的な人とも比べません。">
 <title>価値観カード 体験版</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="価値観カード 体験版">
-<meta property="og:description" content="12枚のカードで、自分の型と、つまずきやすい場面で打てる手を見つける無料の体験版です。診断ではなく、平均的な人とも比べません。">
+<meta property="og:description" content="12枚のカードで、自分の型と、カードを1点動かすと型がどう変わるかを見られる無料の体験版です。診断ではなく、平均的な人とも比べません。">
 <meta property="og:url" content="https://n-nakagaki2025.github.io/kachikan-trial/">
 <meta property="og:image" content="https://n-nakagaki2025.github.io/kachikan-trial/ogp.png">
 <meta property="og:image:width" content="1200">
@@ -164,6 +164,8 @@ details.tr .body{padding-bottom:14px}
 .cov .cv1 .q,.cov .cv1 .by{font-size:13px;color:var(--muted)}
 .cov .cv1 .q b,.cov .cv1 .by b{color:var(--tc)}
 .cov .cv1 .act{font-weight:600}
+.cov .lane .nm{font-family:inherit;font-size:13px;font-weight:700;line-height:1.35;color:var(--ink)}
+.cov .cv1 .ty1 .nm{font-size:22px}
 .cov .textbtn{align-self:flex-start}
 .cov .mkopen{border:1.5px solid var(--tc);color:var(--tc);background:var(--surface);border-radius:999px;padding:8px 16px;font-weight:700;text-decoration:none;font-size:14px;margin-top:4px}
 .mk{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
@@ -351,6 +353,9 @@ const Core = (() => {
 const D = Core.prepare(DATA);
 const KEY = "kachikan.v1";
 const IS_TRIAL = CONFIG.mode === "trial";
+// 体験版の結果画面の部品（2026-11-07 試し）：補う一歩を隠し、「あと1点で届く型」を出す。元に戻すときは2つを入れ替える
+const COVERS_ON = !IS_TRIAL;
+const ONEUP_ON = IS_TRIAL;
 const app = document.getElementById("app");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const tname = (k) => D.traitByKey[k].name;
@@ -581,7 +586,7 @@ function typeCardsHTML(list, top, withTrait) {
 // 型カード：強く出た順に3つまで。ただし、補う一歩に出てくる型は、3つに入らなくても必ず出す
 function typesHTML(t, limit = 3) {
   const all = typesOf(t), top = all.slice(0, limit), used = new Set();
-  coversOf(t).forEach((c) => { used.add(c.x.t + c.x.n); used.add(c.y.t + c.y.n); });
+  if (COVERS_ON) coversOf(t).forEach((c) => { used.add(c.x.t + c.x.n); used.add(c.y.t + c.y.n); });
   return typeCardsHTML(top.concat(all.slice(limit).filter((x) => used.has(x.t + x.n))), top, false);
 }
 // 本編：5つの特性すべての型から、強く出た順に3つまで（補う一歩に出てくる型は必ず出す）
@@ -739,6 +744,76 @@ function coverHTML(t, pdf = false) {
       <span class="by">補う力：あなたの中の<b>「${esc(typeName(c.y))}」</b></span>
       <p class="act">${esc(c.text)}</p>${IS_TRIAL ? makerHTML(c, pdf) : ""}</div>`).join("")}</div>`;
 }
+/* ---------- 1点動かすと変わる型（2026-11-07 試し） ----------
+   カードを1枚だけ、1点動かすと型がどう変わるかを試す。本人の回答は書き換えない（SIM は画面の中だけ）。
+   型が加わる動きも、型がなくなる動き（真ん中へ）も出す。型がある・ないに良い悪いはない（中垣さん、2026-11-07）。
+   「どちらの言葉も合わない」になる動きだけは出さない。
+   答え方の癖（両方の顔・どちらの言葉も合わないが3組以上）は、本人の実際の回答だけで決め、試しの中では判定し直さない。
+   実際の回答ですでに両方の顔が3組以上なら、両方の顔になる動きは出さない（型として読まないため） */
+let SIM = null; // { n, id, v }
+function oneUpMoves(t) {
+  const habit = habitOf(t), R = DATA.readings || {}, out = [], seen = new Set();
+  const ok = (a, b) => a !== b && b !== "mismatch";
+  for (const x of Core.trait(S.answers, t).facets) {
+    const r = R[`${t}${x.n}`];
+    if (!r) continue;
+    // 上げる動きを先に、高い側のカードを先に見る（同じ型に届く動きが2つあれば、先のものを使う）
+    for (const [side, dv] of [["H", 1], ["L", 1], ["H", -1], ["L", -1]]) {
+      const id = `${t}-${side}${x.n}`, v = S.answers[id] + dv;
+      if (v < 1 || v > 6) continue;
+      const y = Core.facet(Object.assign({}, S.answers, { [id]: v }), t, x.n);
+      if (!ok(x.type, y.type) || (y.type !== "center" && !r[y.type])) continue;
+      if (y.type === "both" && habit.both) continue;
+      const k = `${x.n}:${y.type}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ n: x.n, id, from: S.answers[id], v, x, y, before: readingOf(x), after: y.type === "center" ? null : r[y.type] });
+    }
+  }
+  return out;
+}
+function oneUpHTML(t, pdf = false) {
+  const moves = oneUpMoves(t);
+  const head = `<span class="lb">ワンランク上の自分へ</span><span class="nm">1点動かすと変わる型</span>`;
+  if (!moves.length) return pdf ? "" : `<div class="cov t${t}">${head}
+    <p>今回の答えでは、${esc(tname(t))}の12枚の中に、1点動かして変わる型はありませんでした。本編では、ほかの4つの特性からも探せます。</p></div>`;
+  const cur = SIM && moves.find((m) => m.id === SIM.id && m.v === SIM.v);
+  const card = (m) => {
+    const hi = D.byId[`${t}-H${m.n}`], lo = D.byId[`${t}-L${m.n}`];
+    const h = m.id.includes("-H") ? m.v : m.x.h, l = m.id.includes("-L") ? m.v : m.x.l;
+    const lead = !m.after
+      ? (m.before ? `今の<b>「${esc(m.before.name)}」</b>がなくなり、どちらにも寄らない形になります。` : `どちらにも寄らない形になります。`)
+      : m.before
+      ? `今の<b>「${esc(m.before.name)}」</b>が、<b>「${esc(m.after.name)}」</b>に変わります。`
+      : `新しく<b>「${esc(m.after.name)}」</b>が加わります。`;
+    const body = m.after
+      ? `<div class="ty1 t${t}"><span class="nm">${esc(m.after.name)}</span><p>${esc(m.after.text)}</p></div>`
+      : `<p>「${esc(hi.name)}」と「${esc(lo.name)}」が、同じくらいに当てはまる形です。</p>`;
+    return `<div class="cv1">
+      <span class="q">「${esc(D.byId[m.id].name)}」を ${m.from}点 → ${m.v}点にすると</span>
+      <span class="act">${lead}</span>
+      <div class="facets t${t}"><div class="lanes">${laneHTML(hi.name, h, false)}${laneHTML(lo.name, l, true)}</div></div>
+      ${body}
+      ${pdf ? "" : `<button class="textbtn" id="simReset">元に戻す（あなたの答えに戻る）</button>`}</div>`;
+  };
+  if (pdf) return cur ? `<div class="cov t${t}">${head}<p class="small">結果画面で、カードを1枚だけ1点動かして試した結果です。あなたの答えそのものではありません。</p>${card(cur)}</div>` : "";
+  return `<div class="cov t${t}" id="oneup">${head}
+    <p class="small">カードを1枚だけ、1点動かすと、型がどう変わるかを試せます。型が加わる動きも、型がなくなる動きもあります。どちらが良いということはありません。あなたの答えは書き換えません。</p>
+    <div class="chips">${moves.map((m) => `<button class="chip" data-id="${m.id}" data-v="${m.v}" aria-pressed="${cur === m}">「${esc(D.byId[m.id].name)}」を1点${m.v > m.from ? "上げる" : "下げる"}</button>`).join("")}</div>
+    ${cur ? card(cur) : `<p class="small muted">試したいカードを選んでください。</p>`}</div>`;
+}
+function bindOneUp(t) {
+  const box = document.getElementById("oneup");
+  if (!box) return;
+  const redraw = () => { box.outerHTML = oneUpHTML(t); bindOneUp(t); };
+  box.querySelectorAll(".chip").forEach((b) => b.onclick = () => {
+    const same = SIM && SIM.id === b.dataset.id && SIM.v === Number(b.dataset.v);
+    SIM = same ? null : { id: b.dataset.id, v: Number(b.dataset.v) };
+    redraw();
+  });
+  const r = document.getElementById("simReset");
+  if (r) r.onclick = () => { SIM = null; redraw(); };
+}
 const TYPES_NOTE = "強く答えた組の、2枚の答えの組み合わせから読み取っています。平均的な人との比較ではありません。";
 /* ---------- PDF ---------- */
 function pdfBtn() {
@@ -772,11 +847,12 @@ function reportBlocks() {
     const t = CONFIG.trialTrait;
     B.push(`<div><span class="eb">VALUE CARDS / TRIAL</span><h1>価値観カード 体験版<br>${esc(tname(t))}の結果</h1><p class="mu">${date}　外向性の12枚への答えから、あなたに見えてくる型をまとめています。平均的な人との比較ではありません。</p></div>`);
     B.push(`<section class="sec"><h2>あなたに見えてくる型</h2><p class="small mu">${TYPES_NOTE}</p>${typesHTML(t)}</section>`);
-    B.push(coverHTML(t, true));
+    if (COVERS_ON) B.push(coverHTML(t, true));
+    if (ONEUP_ON && SIM) B.push(oneUpHTML(t, true));
     B.push(summaryHTML(t));
     B.push(`<section class="sec"><h2>${esc(tname(t))}の中の位置</h2><p class="small mu">大きな点は、6組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。</p>${axisHTML(t)}</section>`);
     B.push(`<section class="sec"><h2>6組のカード</h2><p class="small muted">1組は、概ね反対の意味に相当する一対のカードです。</p>${facetsHTML(t, true)}</section>`);
-    B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてで5つの特性と30組のカードを見て、これから伸ばしたい「ワンランク上の一枚」を受け取れます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
+    B.push(`<div class="detail"><h3>本編について</h3><p class="small">本編では、60枚すべてに答えて、外向性を含む5つの特性の傾向と、あなたに見えてくる型を見られます。案内：${esc(CONFIG.articleUrl)}</p></div>`);
   } else {
     const ts = D.traits.map((x) => x.key);
     B.push(`<div><span class="eb">VALUE CARDS</span><h1>価値観カード<br>あなたの中の傾向</h1><p class="mu">${date}　60枚への答えから、あなたの中の傾向をまとめています。平均的な人との比較ではありません。</p></div>`);
@@ -869,7 +945,7 @@ function viewResult() {
     <div class="row"><button class="textbtn" id="reset">回答を消して最初から</button></div>
     ${footer()}`;
   bindPdf();
-  document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
+  document.getElementById("reset").onclick = () => { SIM = null; resetAll(); viewIntro(); };
   window.scrollTo(0, 0);
 }
 
@@ -878,7 +954,7 @@ function viewTrialResult() {
   app.innerHTML = `
     <header class="hero"><p class="eyebrow">体験版の結果</p><h1>あなたに見えてくる型</h1>
       <p class="small muted">${esc(tname(t))}の12枚のうち、強く答えた組の2枚の組み合わせから読み取っています。平均的な人との比較ではありません。</p></header>
-    ${typesHTML(t)}${coverHTML(t)}${summaryHTML(t)}
+    ${typesHTML(t)}${COVERS_ON ? coverHTML(t) : ""}${ONEUP_ON ? oneUpHTML(t) : ""}${summaryHTML(t)}
     <section class="sec"><h2>${esc(tname(t))}の中の位置</h2>
       <p class="small muted">大きな点は、6組の「高い側のカードの点 − 低い側のカードの点」の平均です。小さな点は、6組それぞれの位置です。</p>
       ${axisHTML(t)}</section>
@@ -899,7 +975,8 @@ function viewTrialResult() {
     ${footer()}`;
   bindPdf();
   bindMaker(t);
-  document.getElementById("reset").onclick = () => { resetAll(); viewIntro(); };
+  if (ONEUP_ON) bindOneUp(t);
+  document.getElementById("reset").onclick = () => { SIM = null; resetAll(); viewIntro(); };
   window.scrollTo(0, 0);
 }
 
